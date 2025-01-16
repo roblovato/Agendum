@@ -3,24 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hello World</title>
+    <title>Hello World with Random Map</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
             background-color: #f0f0f0;
+            padding: 20px;
         }
         h1 {
             color: #333;
         }
+        #map {
+            width: 80%;
+            height: 400px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
     </style>
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY"></script>
 </head>
 <body>
     <h1>Hello, World!</h1>
-    <p>This is a simple HTML page.</p>
+    <p>This is a simple HTML page with a random map location.</p>
+    <div id="map"></div>
+
+    <script>
+        function initMap() {
+            // Generate random latitude between -85 and 85
+            const lat = Math.random() * 170 - 85;
+            // Generate random longitude between -180 and 180
+            const lng = Math.random() * 360 - 180;
+
+            const map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat, lng },
+                zoom: 8
+            });
+
+            // Add a marker at the random location
+            new google.maps.Marker({
+                position: { lat, lng },
+                map: map,
+                title: 'Random Location'
+            });
+        }
+
+        // Initialize the map when the page loads
+        window.onload = initMap;
+    </script>
 </body>
 </html>
