@@ -3,58 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hello World with Random Map</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            background-color: #f0f0f0;
-            padding: 20px;
-        }
-        h1 {
-            color: #333;
-        }
-        #map {
-            width: 80%;
-            height: 400px;
-            margin: 20px 0;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-    </style>
-    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY"></script>
+    <title>Agendum - Your Schedule, Unified</title>
+    <link rel="stylesheet" href="styles/styles.css">
 </head>
 <body>
-    <h1>Hello, World!</h1>
-    <p>This is a simple HTML page with a random map location.</p>
-    <div id="map"></div>
+    <div id="app">
+        <!-- Components will be loaded here -->
+    </div>
 
-    <script>
-        function initMap() {
-            // Generate random latitude between -85 and 85
-            const lat = Math.random() * 170 - 85;
-            // Generate random longitude between -180 and 180
-            const lng = Math.random() * 360 - 180;
+    <script type="module">
+        import { 
+            createLoadingOverlay,
+            createAuthScripts 
+        } from './scripts/components.js';
 
-            const map = new google.maps.Map(document.getElementById('map'), {
-                center: { lat, lng },
-                zoom: 8
-            });
+        // Initialize the app
+        document.getElementById('app').innerHTML = `
+            ${createLoadingOverlay()}
+            <nav class="top-nav">
+                <a href="dashboard.html" class="dashboard-link">Go to Dashboard</a>
+                <a href="event.html" class="dashboard-link">Event</a>
+            </nav>
+            <div class="container landing-container">
+                <h1 class="landing-title">Agendum</h1>
+                <p class="description">
+                    Simplify your life with Agendum, the intelligent scheduling aggregator that brings all your calendars together. 
+                    Seamlessly sync your work, personal, and shared calendars in one intuitive platform. 
+                    Never miss an important event or double-book yourself again.
+                </p>
+                <div class="button-container">
+                    <a href="signup.html" class="button signup">Sign Up</a>
+                    <a href="signin.html" class="button signin">Sign In</a>
+                </div>
+            </div>
+        `;
 
-            // Add a marker at the random location
-            new google.maps.Marker({
-                position: { lat, lng },
-                map: map,
-                title: 'Random Location'
-            });
-        }
-
-        // Initialize the map when the page loads
-        window.onload = initMap;
+        // Add Firebase scripts
+        document.body.insertAdjacentHTML('beforeend', createAuthScripts());
     </script>
 </body>
 </html>

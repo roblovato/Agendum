@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contacts - Agendum</title>
+    <link rel="stylesheet" href="styles/styles.css">
+</head>
+<body class="dashboard-body">
+    <div id="app">
+        <!-- Components will be loaded here -->
+    </div>
+
+    <div class="modal" id="newContactModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Contact</h2>
+                <button class="close-button">&times;</button>
+            </div>
+            <form class="modal-form">
+                <div class="form-group">
+                    <label for="contactName">Full Name</label>
+                    <div class="input-container">
+                        <input type="text" id="contactName" name="name" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="contactEmail">Email Address</label>
+                    <div class="input-container">
+                        <input type="email" id="contactEmail" name="email" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="contactPhone">Phone Number</label>
+                    <div class="input-container">
+                        <input type="tel" 
+                               id="contactPhone" 
+                               name="phone" 
+                               pattern="[\d\(\)\-\s]+" 
+                               placeholder="(555) 123-4567" 
+                               required>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="button cancel">Cancel</button>
+                    <button type="submit" class="button primary">Add Contact</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { 
+            createHeader, 
+            createSidebar, 
+            createUserNav, 
+            createLoadingOverlay,
+            createFirebaseScripts 
+        } from './scripts/components.js';
+
+        // Initialize the app
+        document.getElementById('app').innerHTML = `
+            ${createLoadingOverlay()}
+            ${createSidebar('contacts')}
+            ${createUserNav()}
+            <main class="main-content">
+                ${createHeader('Your Contacts')}
+                <div class="events-table contacts-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Dynamic content will be loaded here by loadAndDisplayContacts() -->
+                        </tbody>
+                    </table>
+                </div>
+            </main>
+        `;
+
+        // Add Firebase scripts
+        document.body.insertAdjacentHTML('beforeend', createFirebaseScripts());
+    </script>
+</body>
+</html> 

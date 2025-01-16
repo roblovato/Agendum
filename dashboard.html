@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Agendum</title>
+    <link rel="stylesheet" href="styles/styles.css">
+</head>
+<body class="dashboard-body">
+    <div id="app">
+        <!-- Components will be loaded here -->
+    </div>
+
+    <div class="modal" id="newEventModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>New Event</h2>
+                <button class="close-button">&times;</button>
+            </div>
+            <form class="modal-form">
+                <div class="form-group">
+                    <label for="eventTitle">Title</label>
+                    <div class="input-container">
+                        <input type="text" id="eventTitle" name="title" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="eventDescription">Description</label>
+                    <div class="input-container">
+                        <textarea id="eventDescription" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="dateType">Event Duration</label>
+                    <div class="input-container">
+                        <select id="dateType" name="dateType" class="date-type-select">
+                            <option value="single">Single Date</option>
+                            <option value="range">Date Range</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="singleDateContainer" class="form-group date-container">
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="singleDate">Date</label>
+                            <div class="input-container">
+                                <input type="date" id="singleDate" name="singleDate" required>
+                            </div>
+                        </div>
+                        <div class="form-group half">
+                            <label for="singleTime">Time</label>
+                            <div class="input-container">
+                                <input type="time" id="singleTime" name="singleTime" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="dateRangeContainer" class="form-row date-container hidden">
+                    <div class="form-group half">
+                        <label for="startDate">Start Date & Time</label>
+                        <input type="datetime-local" id="startDate" name="startDate">
+                    </div>
+                    <div class="form-group half">
+                        <label for="endDate">End Date & Time</label>
+                        <input type="datetime-local" id="endDate" name="endDate">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Recipients</label>
+                    <div class="checkbox-list no-border">
+                        <div class="checkbox-item select-all">
+                            <input type="checkbox" id="select-all-recipients">
+                            <label for="select-all-recipients">Select All</label>
+                        </div>
+                        <div class="checkbox-divider"></div>
+                        <div class="checkbox-grid">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="recipient-john" name="recipients[]" value="john">
+                                <label for="recipient-john">John Smith</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="recipient-sarah" name="recipients[]" value="sarah">
+                                <label for="recipient-sarah">Sarah Johnson</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="recipient-michael" name="recipients[]" value="michael">
+                                <label for="recipient-michael">Michael Chen</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="recipient-emma" name="recipients[]" value="emma">
+                                <label for="recipient-emma">Emma Wilson</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="recipient-david" name="recipients[]" value="david">
+                                <label for="recipient-david">David Brown</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="recipient-lisa" name="recipients[]" value="lisa">
+                                <label for="recipient-lisa">Lisa Anderson</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="recipient-james" name="recipients[]" value="james">
+                                <label for="recipient-james">James Taylor</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="recipient-maria" name="recipients[]" value="maria">
+                                <label for="recipient-maria">Maria Garcia</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="rsvpDeadline">RSVP Deadline</label>
+                    <input type="datetime-local" id="rsvpDeadline" name="rsvpDeadline">
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="button cancel">Cancel</button>
+                    <button type="submit" class="button primary">Create Event</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { 
+            createHeader, 
+            createSidebar, 
+            createUserNav, 
+            createLoadingOverlay,
+            createFirebaseScripts 
+        } from './scripts/components.js';
+
+        // Initialize the app
+        document.getElementById('app').innerHTML = `
+            ${createLoadingOverlay()}
+            ${createSidebar('events')}
+            ${createUserNav()}
+            <main class="main-content">
+                ${createHeader('Your Events')}
+                <div class="events-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Event</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Location</th>
+                                <th>Participants</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Dynamic content will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </main>
+        `;
+
+        // Add Firebase scripts
+        document.body.insertAdjacentHTML('beforeend', createFirebaseScripts());
+    </script>
+</body>
+</html> 

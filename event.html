@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Multi-User Availability Calendar</title>
+    <link rel="stylesheet" href="styles/styles.css">
+</head>
+<body class="event-body">
+    <div id="app">
+        <!-- Components will be loaded here -->
+    </div>
+
+    <script type="module">
+        import { 
+            createLoadingOverlay,
+            createUserNav,
+            createCalendar,
+            createFirebaseScripts 
+        } from './scripts/components.js';
+
+        // Initialize the app
+        document.getElementById('app').innerHTML = `
+            ${createLoadingOverlay()}
+            ${createUserNav()}
+            ${createCalendar()}
+        `;
+
+        // Add Firebase scripts
+        document.body.insertAdjacentHTML('beforeend', createFirebaseScripts());
+    </script>
+</body>
+</html>
