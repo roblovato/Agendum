@@ -27,6 +27,13 @@
 
         // Add Firebase scripts
         document.body.insertAdjacentHTML('beforeend', createFirebaseScripts());
+
+        // Initialize calendar after components are loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            if (document.querySelector('.calendar-grid')) {
+                renderCalendar();
+            }
+        });
     </script>
 </body>
 </html>

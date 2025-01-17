@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Agendum</title>
     <link rel="stylesheet" href="styles/styles.css">
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="scripts/firebase-config.js"></script>
 </head>
 <body class="dashboard-body">
     <div id="app">
@@ -32,97 +36,60 @@
                     </div>
                 </div>
                 
-                <div class="form-group">
+                <div class="form-group date-group">
                     <label for="dateType">Event Duration</label>
                     <div class="input-container">
-                        <select id="dateType" name="dateType" class="date-type-select">
-                            <option value="single">Single Date</option>
-                            <option value="range">Date Range</option>
+                        <select id="dateType" name="dateType">
+                            <option value="single">Single Day</option>
+                            <option value="multi">Multiple Days</option>
                         </select>
                     </div>
                 </div>
-
-                <div id="singleDateContainer" class="form-group date-container">
-                    <div class="form-row">
-                        <div class="form-group half">
-                            <label for="singleDate">Date</label>
-                            <div class="input-container">
-                                <input type="date" id="singleDate" name="singleDate" required>
-                            </div>
-                        </div>
-                        <div class="form-group half">
-                            <label for="singleTime">Time</label>
-                            <div class="input-container">
-                                <input type="time" id="singleTime" name="singleTime" required>
-                            </div>
-                        </div>
+                
+                <div class="form-group" id="singleDateGroup">
+                    <label for="eventDate">Date</label>
+                    <div class="input-container">
+                        <input type="date" id="eventDate" name="date" required>
                     </div>
                 </div>
-
-                <div id="dateRangeContainer" class="form-row date-container hidden">
-                    <div class="form-group half">
-                        <label for="startDate">Start Date & Time</label>
-                        <input type="datetime-local" id="startDate" name="startDate">
+                
+                <div class="form-group" id="dateRangeGroup" style="display: none;">
+                    <label for="startDate">Start Date</label>
+                    <div class="input-container">
+                        <input type="date" id="startDate" name="startDate">
                     </div>
-                    <div class="form-group half">
-                        <label for="endDate">End Date & Time</label>
-                        <input type="datetime-local" id="endDate" name="endDate">
+                    <label for="endDate">End Date</label>
+                    <div class="input-container">
+                        <input type="date" id="endDate" name="endDate">
                     </div>
                 </div>
                 
                 <div class="form-group">
-                    <label>Recipients</label>
-                    <div class="checkbox-list no-border">
-                        <div class="checkbox-item select-all">
-                            <input type="checkbox" id="select-all-recipients">
-                            <label for="select-all-recipients">Select All</label>
-                        </div>
-                        <div class="checkbox-divider"></div>
-                        <div class="checkbox-grid">
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="recipient-john" name="recipients[]" value="john">
-                                <label for="recipient-john">John Smith</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="recipient-sarah" name="recipients[]" value="sarah">
-                                <label for="recipient-sarah">Sarah Johnson</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="recipient-michael" name="recipients[]" value="michael">
-                                <label for="recipient-michael">Michael Chen</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="recipient-emma" name="recipients[]" value="emma">
-                                <label for="recipient-emma">Emma Wilson</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="recipient-david" name="recipients[]" value="david">
-                                <label for="recipient-david">David Brown</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="recipient-lisa" name="recipients[]" value="lisa">
-                                <label for="recipient-lisa">Lisa Anderson</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="recipient-james" name="recipients[]" value="james">
-                                <label for="recipient-james">James Taylor</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="recipient-maria" name="recipients[]" value="maria">
-                                <label for="recipient-maria">Maria Garcia</label>
-                            </div>
-                        </div>
+                    <label for="eventTime">Time</label>
+                    <div class="input-container">
+                        <input type="time" id="eventTime" name="time">
                     </div>
                 </div>
                 
                 <div class="form-group">
-                    <label for="rsvpDeadline">RSVP Deadline</label>
-                    <input type="datetime-local" id="rsvpDeadline" name="rsvpDeadline">
+                    <label for="eventLocation">Location</label>
+                    <div class="input-container">
+                        <input type="text" id="eventLocation" name="location">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="eventParticipants">Participants</label>
+                    <div class="input-container">
+                        <select id="eventParticipants" name="participants" multiple>
+                            <!-- Will be populated dynamically -->
+                        </select>
+                    </div>
                 </div>
                 
                 <div class="form-actions">
-                    <button type="button" class="button cancel">Cancel</button>
                     <button type="submit" class="button primary">Create Event</button>
+                    <button type="button" class="button secondary close-button">Cancel</button>
                 </div>
             </form>
         </div>
@@ -133,8 +100,7 @@
             createHeader, 
             createSidebar, 
             createUserNav, 
-            createLoadingOverlay,
-            createFirebaseScripts 
+            createLoadingOverlay
         } from './scripts/components.js';
 
         // Initialize the app
@@ -163,9 +129,7 @@
                 </div>
             </main>
         `;
-
-        // Add Firebase scripts
-        document.body.insertAdjacentHTML('beforeend', createFirebaseScripts());
     </script>
+    <script type="module" src="scripts/scripts.js"></script>
 </body>
 </html> 

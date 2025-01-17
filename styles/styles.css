@@ -152,704 +152,120 @@ input:focus {
 
 /* Dashboard Layout */
 .dashboard-body {
-    padding: 0;
     display: flex;
     min-height: 100vh;
-}
-
-.sidebar {
-    width: 250px;
-    background-color: #2c3e50;
-    color: white;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 30px;
-}
-
-.sidebar .logo h2 {
-    margin: 0;
-    font-size: 1.8em;
-    color: white;
-}
-
-.nav-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.nav-button {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 20px;
-    background: none;
-    border: none;
-    color: white;
-    font-size: 1.1em;
-    cursor: pointer;
-    border-radius: 8px;
-    transition: background-color 0.2s;
+    background-color: #f8f9fa;
     text-align: left;
+    padding: 0;
+}
+
+#app {
+    display: flex;
     width: 100%;
 }
 
-.nav-button:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+/* Sidebar */
+.sidebar {
+    width: 250px;
+    min-width: 250px;
+    background-color: white;
+    padding: 20px;
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    overflow-y: auto;
+    border-right: 1px solid #eee;
 }
 
-.nav-button.primary {
-    background-color: #3498db;
-}
-
-.nav-button.primary:hover {
-    background-color: #2980b9;
-}
-
+/* Main Content Area */
 .main-content {
     flex: 1;
-    padding: 30px;
-    background-color: #f8f9fa;
+    padding: 20px;
+    margin-left: 290px; /* Match sidebar width */
+    width: calc(100% - 290px);
+    min-height: 100vh;
 }
 
-.dashboard-header {
+/* User Navigation */
+.user-info {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 30px;
+    gap: 12px;
+    flex: 1;
 }
 
-.header-actions {
+
+.user-nav {
+    position: fixed;
+    top: 20px;
+    right: 20px;
     display: flex;
-    gap: 15px;
+    align-items: center;
+    gap: 10px;
+    z-index: 100;
 }
 
-.search-input {
-    padding: 8px 15px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    width: 250px;
+.user-name {
+    display: flex;
+    align-items: center;
 }
 
-.filter-select {
-    padding: 8px 15px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    background-color: white;
-}
-
-/* Events Table */
-.events-table {
-    background-color: white;
+/* Table Styles */
+.events-table, .contacts-table {
+    background: white;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
     overflow: hidden;
+    width: 100%;
 }
 
-table {
+.events-table table, .contacts-table table {
     width: 100%;
     border-collapse: collapse;
 }
 
-th, td {
-    padding: 15px;
+.events-table th, .contacts-table th {
+    background-color: #f8f9fa;
     text-align: left;
+    padding: 12px 20px;
+    font-weight: 600;
+    border-bottom: 2px solid #eee;
+}
+
+.events-table td, .contacts-table td {
+    padding: 12px 20px;
     border-bottom: 1px solid #eee;
 }
 
-th {
-    background-color: #f8f9fa;
-    font-weight: 600;
-    color: #2c3e50;
-}
-
-tr:hover {
-    background-color: #f8f9fa;
-}
-
-.action-button {
-    padding: 6px 12px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9em;
-    margin-right: 5px;
-}
-
-.action-button.edit {
-    background-color: #3498db;
-    color: white;
-}
-
-.action-button.delete {
-    background-color: #e74c3c;
-    color: white;
-}
-
-.action-button:hover {
-    opacity: 0.9;
-}
-
-/* Top Navigation */
-.top-nav {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-}
-
-.dashboard-link {
-    padding: 8px 16px;
-    background-color: #2c3e50;
-    color: white;
-    text-decoration: none;
-    border-radius: 20px;
-    font-size: 0.9em;
-    transition: background-color 0.2s;
-}
-
-.dashboard-link:hover {
-    background-color: #34495e;
-}
-
-.nav-button.active {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-.icon {
-    font-size: 1.2em;
-}
-
-/* Add to make nav-button work on anchor tags too */
-a.nav-button {
-    text-decoration: none;
-}
-
-/* Modal Styles */
-.modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
-    justify-content: center;
-    align-items: center;
-}
-
-.modal.show {
-    display: flex;
-}
-
-.modal-content {
-    background-color: white;
-    border-radius: 8px;
-    width: 90%;
-    max-width: 800px;
-    max-height: 90vh;
-    overflow-y: auto;
-    position: relative;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-.modal-header {
-    padding: 20px;
-    border-bottom: 1px solid #eee;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.modal-header h2 {
-    margin: 0;
-    color: #2c3e50;
-}
-
-.close-button {
-    background: none;
-    border: none;
-    font-size: 1.5em;
-    cursor: pointer;
-    color: #666;
-}
-
-.modal-form {
-    padding: 20px;
-    box-sizing: border-box;
-}
-
-.form-row {
-    display: flex;
-    gap: 20px;
-    width: 100%;
-}
-
-.form-group.half {
-    flex: 1;
-    margin-bottom: 0;
-}
-
-textarea {
-    width: 100%;
-    padding: 12px;
-    border: 2px solid #ddd;
-    border-radius: 8px;
-    font-size: 1em;
-    font-family: inherit;
-    resize: vertical;
-    min-height: 80px;
-    max-height: 200px;
-    box-sizing: border-box;
-    max-width: 100%;
-    overflow-x: hidden;
-}
-
-select[multiple] {
-    width: 100%;
-    padding: 8px;
-    border: 2px solid #ddd;
-    border-radius: 8px;
-    min-height: 100px;
-}
-
-.help-text {
-    display: block;
-    color: #666;
-    font-size: 0.9em;
-    margin-top: 4px;
-}
-
-.form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 30px;
-}
-
-.button.cancel {
-    background-color: #95a5a6;
-    color: white;
-    border: none;
-}
-
-.button.primary {
-    background-color: #3498db;
-    color: white;
-    border: none;
-}
-
-.date-type-select {
-    width: 100%;
-    padding: 12px;
-    border: 2px solid #ddd;
-    border-radius: 8px;
-    font-size: 1em;
-    margin-bottom: 20px;
-    background-color: white;
-}
-
-.date-container {
-    opacity: 1;
-    transform: translateY(0);
-    transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.date-container.hidden {
-    display: none;
-    opacity: 0;
-    transform: translateY(-10px);
-}
-
-/* Add to the Modal Styles section */
-.checkbox-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    max-height: 300px;
-    overflow-y: auto;
-    padding: 8px 0;
-}
-
-.checkbox-list.no-border {
-    border: none;
-}
-
-.checkbox-divider {
-    height: 1px;
-    background-color: #ddd;
-    margin: 4px 0;
-}
-
-.checkbox-item.select-all {
-    grid-column: 1 / -1;
-    margin-bottom: 4px;
-}
-
-.checkbox-item.select-all label {
-    font-weight: 600;
-    color: #2c3e50;
-}
-
-.checkbox-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-direction: row;
-}
-
-.checkbox-item input[type="checkbox"] {
-    width: auto;
-    margin: 0;
-}
-
-.checkbox-item label {
-    margin: 0;
-}
-
-/* Add grid layout styles */
-.checkbox-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px 24px;
-    padding: 8px;
-}
-
-/* Responsive grid */
-@media (max-width: 768px) {
-    .checkbox-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (max-width: 480px) {
-    .checkbox-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* Event Calendar Styles */
-.calendar {
-    background: white;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 5px;
-    margin-top: 10px;
-}
-
-.day {
-    aspect-ratio: 1;
-    border: 1px solid #ddd;
-    display: flex;
-    flex-direction: column;
-    padding: 4px;
-    cursor: pointer;
-    min-height: 60px;
-    background-color: white;
-}
-
-.day:hover {
-    background-color: #f0f0f0;
-}
-
-.day.selected {
-    background-color: #4CAF50;
-    color: white;
-}
-
-.day.empty {
-    background-color: #f9f9f9;
-    cursor: default;
-}
-
-.weekday-header {
-    font-weight: bold;
-    text-align: center;
-    padding: 10px 0;
-}
-
-.month-header {
+/* Header */
+.dashboard-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
+    padding-right: 200px; /* Make room for user nav */
 }
 
-.month-header button {
-    background: #4CAF50;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.month-header button:hover {
-    background: #45a049;
-}
-
-.available-dates {
-    margin-top: 20px;
-    background: white;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.available-dates h2 {
-    margin-top: 0;
-}
-
-.date-list {
-    list-style: none;
-    padding: 0;
-}
-
-.date-list li {
-    padding: 8px;
-    border-bottom: 1px solid #eee;
-}
-
-.user-controls {
-    margin-bottom: 20px;
-    background: white;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.user-button {
-    padding: 8px 16px;
-    margin-right: 10px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    color: white;
-}
-
-.user-button.active {
-    outline: 3px solid #333;
-}
-
-.day.user1, .day.user2, .day.user3 { 
-    background-color: white; 
-}
-
-.day.user1.user2.user3 { 
-    background-color: rgba(128, 0, 128, 0.5); 
-}
-
-.user-name {
-    display: inline-block;
-    line-height: 1.4;
-    font-size: 11px;
-    padding: 2px 4px;
-    margin: 1px 0;
-    border-radius: 3px;
-    font-weight: bold;
-    color: black;
-}
-
-.user-name.user1 { 
-    background-color: rgba(255, 0, 0, 0.3); 
-}
-
-.user-name.user2 { 
-    background-color: rgba(0, 0, 255, 0.3); 
-}
-
-.user-name.user3 { 
-    background-color: rgba(0, 255, 0, 0.3); 
-}
-
-/* Event page specific styles */
-.event-body {
-    font-family: Arial, sans-serif;
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-    background-color: #f0f8ff;
-}
-
-/* Add form validation styles */
-.error-message {
-    display: none;
-    position: absolute;
-    left: calc(100% + 10px);
-    top: 50%;
-    transform: translateY(-50%);
-    background-color: #dc3545;
-    color: white;
-    padding: 8px 12px;
-    border-radius: 4px;
-    font-size: 0.85em;
-    white-space: pre-line;
-    z-index: 10;
-    width: max-content;
-    max-width: 200px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-
-.error-message::before {
-    content: '';
-    position: absolute;
-    left: -5px;
-    top: 50%;
-    transform: translateY(-50%);
-    border-style: solid;
-    border-width: 6px 6px 6px 0;
-    border-color: transparent #dc3545 transparent transparent;
-}
-
-input.invalid {
-    border-color: #dc3545;
-    background-color: #fff8f8;
-}
-
-input.valid {
-    border-color: #28a745;
-    background-color: #f8fff8;
-}
-
-input:focus {
-    outline: none;
-    border-color: #3498db;
-}
-
-input.invalid:focus {
-    border-color: #dc3545;
-}
-
-input.valid:focus {
-    border-color: #28a745;
-}
-
-/* Add password field styles */
-.password-container {
-    width: 100%;
-    position: relative;
-}
-
-.password-container input[type="password"],
-.password-container input[type="text"] {
-    flex: 1;
-}
-
-.show-password {
-    position: absolute;
-    right: 10px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 0.85em;
-    color: #666;
-    cursor: pointer;
-    user-select: none;
-    font-weight: normal;
-    background: white;
-    padding: 2px 6px;
-    border-radius: 4px;
-}
-
-.show-password:hover {
-    color: #333;
-}
-
-.show-password input[type="checkbox"] {
-    width: auto;
+.dashboard-header h1 {
     margin: 0;
-    cursor: pointer;
+    color: var(--text-color);
+    font-size: 24px;
 }
 
-/* Add user navigation styles */
-.user-nav {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    background-color: white;
-    padding: 8px 16px;
-    border-radius: 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.user-info {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: #2c3e50;
-    font-size: 0.9em;
-}
-
-.user-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background-color: #3498db;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-}
-
-.logout-button {
-    padding: 6px 12px;
-    background-color: #e74c3c;
-    color: white;
-    border: none;
-    border-radius: 15px;
-    cursor: pointer;
-    font-size: 0.9em;
-    transition: background-color 0.2s;
-}
-
-.logout-button:hover {
-    background-color: #c0392b;
-}
-
-/* Hide user nav when not authenticated */
-.user-nav {
-    display: none;
-}
-
-body.authenticated .user-nav {
-    display: flex;
-}
-
-/* Adjust top nav for unauthenticated pages */
-body:not(.authenticated) .top-nav {
-    display: block;
-}
-
-body.authenticated .top-nav {
-    display: none;
-}
-
-/* Add loading overlay styles */
+/* Loading Overlay */
 .loading-overlay {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(255, 255, 255, 0.9);
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
     display: none;
     justify-content: center;
     align-items: center;
-    z-index: 9999;
-    flex-direction: column;
-    gap: 20px;
+    z-index: 1000;
 }
 
 .loading-overlay.show {
@@ -954,4 +370,367 @@ body.authenticated .top-nav {
     .modal-form .form-actions {
         width: 90%;
     }
+}
+
+/* Sidebar Navigation */
+.nav-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.nav-button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    color: #2c3e50;
+    text-decoration: none;
+    transition: background-color 0.2s;
+}
+
+.nav-button:hover {
+    background-color: #f8f9fa;
+}
+
+.nav-button.active {
+    background-color: #e9ecef;
+    font-weight: 600;
+}
+
+.nav-button.primary {
+    background-color: #3498db;
+    color: white;
+}
+
+.nav-button.primary:hover {
+    background-color: #2980b9;
+}
+
+/* User Navigation */
+.user-nav {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 16px;
+    background-color: white;
+    border-radius: 24px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    background-color: #3498db;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+}
+
+.user-name {
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+.logout-button {
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.logout-button:hover {
+    background-color: #f8f9fa;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0,0,0,0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-content {
+    background-color: white;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    padding: 0;
+    box-sizing: border-box;
+    margin: auto;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+    position: sticky;
+    top: 0;
+    background: white;
+    border-radius: 8px 8px 0 0;
+    z-index: 1;
+}
+
+.modal-form {
+    padding: 20px;
+}
+
+.modal-form .form-group {
+    position: relative;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.modal-form .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+/* Ensure the close button is properly positioned */
+.modal .close-button {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    padding: 4px 8px;
+    line-height: 1;
+}
+
+.modal .close-button:hover {
+    color: #2c3e50;
+}
+
+/* Table Actions */
+.table-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.action-button {
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+.action-button.edit {
+    background-color: #f8f9fa;
+    color: #2c3e50;
+}
+
+.action-button.delete {
+    background-color: #fee2e2;
+    color: #dc2626;
+}
+
+.action-button:hover {
+    opacity: 0.9;
+}
+
+/* Add these styles for the search and filter section */
+.search-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    align-items: center;
+}
+
+.search-bar {
+    display: flex;
+    flex: 1;
+    background: white;
+    border: 1px solid #eee;
+    border-radius: 8px;
+}
+
+.search-input {
+    flex: 1;
+    border: none;
+    padding: 12px 16px;
+    font-size: 14px;
+    outline: none;
+    border-radius: 8px;
+}
+
+.filter-select {
+    border: 1px solid #eee;
+    padding: 12px 16px;
+    font-size: 14px;
+    color: #666;
+    background-color: white;
+    cursor: pointer;
+    outline: none;
+    width: 120px;
+    border-radius: 8px;
+}
+
+.filter-select:hover {
+    background-color: #f8f9fa;
+}
+
+.search-input::placeholder {
+    color: #999;
+}
+
+.search-bar:focus-within {
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+}
+
+.filter-select:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+}
+
+/* Add textarea styles to match inputs */
+textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 1em;
+    box-sizing: border-box;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 100px;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+/* Update modal form styles to include textarea */
+.modal-form .input-container textarea {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Update select styles to match filter-select */
+select {
+    padding: 12px 16px;
+    font-size: 14px;
+    color: #666;
+    background-color: white;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    outline: none;
+    width: 100%;
+    box-sizing: border-box;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+    padding-right: 40px;
+}
+
+select:hover {
+    background-color: #f8f9fa;
+}
+
+select:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+}
+
+/* Override styles for filter-select to maintain its specific width */
+.filter-select {
+    width: 120px;
+    border: 1px solid #eee;
+}
+
+/* Style select elements within modals */
+.modal-form select {
+    width: 100%;
+}
+
+/* Style multiple select */
+select[multiple] {
+    padding: 8px;
+    min-height: 120px;
+    background-image: none;
+}
+
+select[multiple] option {
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 4px;
+}
+
+select[multiple] option:checked {
+    background-color: #3498db;
+    color: white;
+}
+
+select[multiple] option:hover {
+    background-color: #f8f9fa;
+}
+
+/* Add styles for date range inputs */
+.date-group {
+    margin-bottom: 24px;
+}
+
+#dateRangeGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+#dateRangeGroup label {
+    margin-top: 8px;
+}
+
+/* Style date inputs */
+input[type="date"] {
+    font-family: inherit;
+    padding-right: 10px;
+}
+
+/* Hide calendar icon in date inputs for consistency */
+input[type="date"]::-webkit-calendar-picker-indicator {
+    background: transparent;
+    bottom: 0;
+    color: transparent;
+    cursor: pointer;
+    height: auto;
+    left: auto;
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: auto;
+    padding: 8px;
 } 
