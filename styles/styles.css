@@ -583,32 +583,11 @@ input:focus {
     border-radius: 8px;
 }
 
-.filter-select {
-    border: 1px solid #eee;
-    padding: 12px 16px;
-    font-size: 14px;
-    color: #666;
-    background-color: white;
-    cursor: pointer;
-    outline: none;
-    width: 120px;
-    border-radius: 8px;
-}
-
-.filter-select:hover {
-    background-color: #f8f9fa;
-}
-
 .search-input::placeholder {
     color: #999;
 }
 
 .search-bar:focus-within {
-    border-color: #3498db;
-    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
-}
-
-.filter-select:focus {
     border-color: #3498db;
     box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
 }
@@ -666,12 +645,6 @@ select:focus {
     box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
 }
 
-/* Override styles for filter-select to maintain its specific width */
-.filter-select {
-    width: 120px;
-    border: 1px solid #eee;
-}
-
 /* Style select elements within modals */
 .modal-form select {
     width: 100%;
@@ -705,13 +678,21 @@ select[multiple] option:hover {
 }
 
 #dateRangeGroup {
+    display: none; /* Hidden by default */
+}
+
+#dateRangeGroup.show {
     display: flex;
-    flex-direction: column;
-    gap: 16px;
+    flex-direction: row;
+    gap: 20px;
+}
+
+#dateRangeGroup .date-input-group {
+    flex: 1;
 }
 
 #dateRangeGroup label {
-    margin-top: 8px;
+    margin-bottom: 8px;
 }
 
 /* Style date inputs */
@@ -733,4 +714,456 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     top: 0;
     width: auto;
     padding: 8px;
-} 
+}
+
+/* Calendar styles */
+.event-body {
+    padding: 0;
+    text-align: left;
+    display: flex;
+}
+
+/* Left column */
+.left-column {
+    width: 300px;
+    padding: 20px;
+    background: white;
+    border-right: 1px solid #eee;
+    height: 100vh;
+    position: fixed;
+    overflow-y: auto;
+}
+
+/* Right column (calendar) */
+.right-column {
+    flex: 1;
+    padding: 40px;
+    margin-left: 300px;
+    min-height: 100vh;
+}
+
+.user-controls {
+    margin-bottom: 30px;
+}
+
+.user-controls h3 {
+    margin-bottom: 15px;
+    color: #2c3e50;
+}
+
+/* Update calendar container */
+.calendar {
+    background: white;
+    border-radius: 8px;
+    padding: 30px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Update available dates section */
+.available-dates {
+    margin-top: 30px;
+    background: transparent;
+    padding: 0;
+    box-shadow: none;
+}
+
+.month-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.month-header button {
+    padding: 8px 16px;
+    border: none;
+    background: #f8f9fa;
+    border-radius: 20px;
+    cursor: pointer;
+    color: #2c3e50;
+}
+
+.month-header button:hover {
+    background: #e9ecef;
+}
+
+.month-header h2 {
+    margin: 0;
+    color: #2c3e50;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+}
+
+.weekday-header {
+    text-align: center;
+    font-weight: 600;
+    color: #666;
+    padding: 10px;
+}
+
+.day {
+    aspect-ratio: 1;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 8px;
+    cursor: pointer;
+    position: relative;
+    background: white;
+}
+
+.day:hover {
+    background: #f8f9fa;
+}
+
+.day.empty {
+    background: none;
+    border: none;
+    cursor: default;
+}
+
+.date-number {
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.users {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 8px;
+}
+
+.user-name {
+    font-size: 0.8em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: white;
+}
+
+.user-name.user1 { background-color: rgba(255, 0, 0, 0.8); }
+.user-name.user2 { background-color: rgba(0, 0, 255, 0.8); }
+.user-name.user3 { background-color: rgba(0, 255, 0, 0.8); }
+
+.available-dates {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.available-dates h2 {
+    margin: 0 0 20px 0;
+    color: #2c3e50;
+}
+
+.date-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.date-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.date-list li:last-child {
+    border-bottom: none;
+}
+
+.multi-user {
+    width: 10px;
+    height: 10px;
+    background-color: #9b59b6;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+/* Calendar day states */
+.day.user1 { border-color: rgba(255, 0, 0, 0.3); }
+.day.user2 { border-color: rgba(0, 0, 255, 0.3); }
+.day.user3 { border-color: rgba(0, 255, 0, 0.3); }
+
+.day.user1.user2,
+.day.user1.user3,
+.day.user2.user3 {
+    border-width: 2px;
+    border-color: #9b59b6;
+}
+
+.day.user1.user2.user3 {
+    border-width: 3px;
+}
+
+/* Date selection styles */
+.date-selection-container {
+    margin-bottom: 20px;
+}
+
+#dateRangeGroup {
+    display: none;
+}
+
+.date-range-wrapper {
+    display: flex;
+    gap: 20px;
+}
+
+.date-input-group {
+    flex: 1;
+}
+
+.date-input-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+#singleDateGroup {
+    display: block;
+}
+
+/* Update flatpickr styles */
+.flatpickr-input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 1em;
+    box-sizing: border-box;
+}
+
+.flatpickr-input:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+/* Update invitees styles */
+.invitees-container {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    padding: 0;
+}
+
+.invitees-list {
+    padding: 8px;
+}
+
+.invitee-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+}
+
+.invitee-item:last-child {
+    border-bottom: none;
+}
+
+.invitee-item:hover {
+    background-color: #f8f9fa;
+}
+
+/* Custom checkbox styles */
+.invitee-checkbox {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px !important;
+    height: 20px;
+    min-width: 20px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+    margin: 0;
+    margin-right: 12px;
+    position: relative;
+    transition: all 0.2s;
+}
+
+.invitee-checkbox:checked {
+    background-color: #3498db;
+    border-color: #3498db;
+}
+
+.invitee-checkbox:checked::after {
+    content: '✓';
+    position: absolute;
+    color: white;
+    font-size: 18px;
+    left: 5px;
+    top: 0px;
+}
+
+.invitee-checkbox:hover {
+    border-color: #3498db;
+}
+
+.invitee-name {
+    font-size: 14px;
+    color: #2c3e50;
+    cursor: pointer;
+    user-select: none;
+}
+
+.loading-spinner {
+    text-align: center;
+    color: #666;
+    padding: 20px;
+}
+
+/* Delete modal styles */
+.modal-body {
+    padding: 20px;
+    color: #2c3e50;
+}
+
+.modal-body p {
+    margin: 0 0 20px 0;
+    line-height: 1.5;
+}
+
+.contact-details {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+}
+
+.contact-details p {
+    margin: 0;
+    padding: 4px 0;
+}
+
+.contact-name {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.contact-email {
+    color: #666;
+}
+
+/* Danger button style */
+.button.danger {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+}
+
+.button.danger:hover {
+    background-color: #c0392b;
+}
+
+/* Update delete modal styles */
+#deleteContactModal .form-actions {
+    border-top: 1px solid #eee;
+    padding: 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 0;
+}
+
+#deleteContactModal .button {
+    margin: 0;
+}
+
+/* Update modal-body to not overlap with form-actions */
+#deleteContactModal .modal-body {
+    padding: 20px;
+    color: #2c3e50;
+    border-bottom: none;
+}
+
+/* Date picker styles */
+#singleDateGroup, #dateRangeGroup {
+    margin-bottom: 20px;
+}
+
+.date-range-wrapper {
+    display: flex;
+    gap: 20px;
+}
+
+.date-input-group {
+    flex: 1;
+}
+
+.date-input-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+/* Flatpickr customization */
+.flatpickr-calendar {
+    background: #fff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+.flatpickr-day.selected {
+    background: #3498db;
+    border-color: #3498db;
+}
+
+.flatpickr-day.selected:hover {
+    background: #2980b9;
+}
+
+.flatpickr-input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 1em;
+    box-sizing: border-box;
+    cursor: pointer;
+}
+
+.flatpickr-input:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+/* Date picker container styles */
+.date-picker-container {
+    margin-bottom: 20px;
+}
+
+#singleDateGroup, #dateRangeGroup {
+    display: none; /* Hide both by default */
+}
+
+#singleDateGroup.active {
+    display: block;
+}
+
+#dateRangeGroup.active {
+    display: block;
+}
+
+.date-range-wrapper {
+    display: flex;
+    gap: 20px;
+}
+
+.date-input-group {
+    flex: 1;
+}

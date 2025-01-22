@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <title>Multi-User Availability Calendar</title>
     <link rel="stylesheet" href="styles/styles.css">
+    <!-- Add Firebase scripts -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="scripts/firebase-config.js"></script>
 </head>
 <body class="event-body">
     <div id="app">
@@ -14,8 +19,7 @@
         import { 
             createLoadingOverlay,
             createUserNav,
-            createCalendar,
-            createFirebaseScripts 
+            createCalendar
         } from './scripts/components.js';
 
         // Initialize the app
@@ -25,8 +29,8 @@
             ${createCalendar()}
         `;
 
-        // Add Firebase scripts
-        document.body.insertAdjacentHTML('beforeend', createFirebaseScripts());
+        // Import calendar functions
+        import { renderCalendar } from './scripts/calendar.js';
 
         // Initialize calendar after components are loaded
         document.addEventListener('DOMContentLoaded', () => {
@@ -35,5 +39,6 @@
             }
         });
     </script>
+    <script type="module" src="scripts/scripts.js"></script>
 </body>
 </html>

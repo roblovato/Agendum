@@ -504,48 +504,71 @@ function initializeModal() {
     const closeButtons = document.querySelectorAll('.modal .close-button');
     const newButton = document.querySelector('.nav-button.primary');
 
-    // Close modal when clicking close button
+    // Reset modal state when closing
+    function resetModal(modal) {
+        const form = modal.querySelector('form');
+        const modalTitle = modal.querySelector('#contactModalTitle');
+        const submitBtn = modal.querySelector('#contactSubmitBtn');
+        
+        if (form) {
+            form.reset();
+            const contactIdInput = form.querySelector('#contactId');
+            if (contactIdInput) contactIdInput.value = '';
+        }
+        
+        // Reset title and button text to "Add" state
+        if (modalTitle) modalTitle.textContent = 'Add New Contact';
+        if (submitBtn) submitBtn.textContent = 'Add Contact';
+        
+        // Clear any contact details in delete modal
+        if (modal.id === 'deleteContactModal') {
+            const nameElement = modal.querySelector('.contact-name');
+            const emailElement = modal.querySelector('.contact-email');
+            if (nameElement) nameElement.textContent = '';
+            if (emailElement) emailElement.textContent = '';
+        }
+
+        modal.style.display = 'none';
+    }
+
+    // Close modal handlers
     closeButtons.forEach(button => {
         button.addEventListener('click', (e) => {
-            e.preventDefault(); // Prevent form submission for button type="button"
+            e.preventDefault();
             const modal = button.closest('.modal');
-            if (modal) {
-                modal.style.display = 'none';
-                // Reset form if exists
-                const form = modal.querySelector('form');
-                if (form) form.reset();
-            }
+            if (modal) resetModal(modal);
         });
     });
 
-    // Close modal when clicking outside
     modals.forEach(modal => {
         modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.style.display = 'none';
-                // Reset form if exists
-                const form = modal.querySelector('form');
-                if (form) form.reset();
-            }
+            if (e.target === modal) resetModal(modal);
         });
     });
 
-    // Open modal when clicking new button
+    // Open modal handler
     if (newButton) {
         newButton.addEventListener('click', () => {
             const isContactsPage = window.location.pathname.includes('contacts.html');
             const modalId = isContactsPage ? 'newContactModal' : 'newEventModal';
             const modal = document.getElementById(modalId);
             if (modal) {
+                // Reset form and set "Add" state
+                resetModal(modal);
                 modal.style.display = 'block';
-                // Focus on first input
+                
+                if (modalId === 'newEventModal') {
+                    initializeDateTypeHandler();
+                    loadInviteesList();
+                }
+                
                 const firstInput = modal.querySelector('input:not([type="hidden"])');
                 if (firstInput) firstInput.focus();
             }
         });
     }
 
-    // Handle form submissions
+    // Form submission handler
     modals.forEach(modal => {
         const form = modal.querySelector('form');
         if (form) {
@@ -557,18 +580,28 @@ function initializeModal() {
                 try {
                     const isContactsPage = window.location.pathname.includes('contacts.html');
                     if (isContactsPage) {
-                        await addNewContact(data);
+                        const contactId = data.contactId;
+                        delete data.contactId; // Remove ID from data object
+                        
+                        if (contactId) {
+                            // Update existing contact
+                            await db.collection('contacts').doc(contactId).update({
+                                ...data,
+                                updatedAt: new Date()
+                            });
+                        } else {
+                            // Add new contact
+                            await addNewContact(data);
+                        }
                     } else {
                         await addNewEvent(data);
                     }
                     
-                    modal.style.display = 'none';
-                    form.reset();
-                    // Refresh the page to show new data
+                    resetModal(modal);
                     window.location.reload();
                 } catch (error) {
-                    console.error('Error adding new item:', error);
-                    alert('Error adding new item. Please try again.');
+                    console.error('Error saving item:', error);
+                    alert('Error saving item. Please try again.');
                 }
             });
         }
@@ -591,8 +624,13 @@ async function addNewEvent(eventData) {
     const user = firebase.auth().currentUser;
     if (!user) throw new Error('User not authenticated');
 
+    // Get selected invitees
+    const selectedInvitees = Array.from(document.querySelectorAll('.invitee-checkbox:checked'))
+        .map(checkbox => checkbox.value);
+
     await db.collection('events').add({
         ...eventData,
+        invitees: selectedInvitees,
         userId: user.uid,
         createdAt: new Date()
     });
@@ -625,7 +663,7 @@ function hideLoading() {
 window.showLoading = showLoading;
 window.hideLoading = hideLoading;
 
-// Add this function to handle loading and displaying contacts
+// Update the loadAndDisplayContacts function
 async function loadAndDisplayContacts() {
     try {
         const user = firebase.auth().currentUser;
@@ -643,21 +681,19 @@ async function loadAndDisplayContacts() {
             .orderBy('name', 'asc')
             .get();
 
-        // Clear existing table content
+        // Clear existing table content before adding new rows
         contactsTable.innerHTML = '';
 
         if (snapshot.empty) {
             // Show empty state
             contactsTable.innerHTML = `
                 <tr>
-                    <td colspan="4">
-                        <div class="empty-state">
-                            <p>You haven't added any contacts yet.</p>
-                            <button class="button primary add-new-contact">
-                                <span class="icon">+</span>
-                                Add New Contact
-                            </button>
-                        </div>
+                    <td colspan="4" class="empty-state">
+                        <p>You haven't added any contacts yet.</p>
+                        <button class="button primary add-new-contact">
+                            <span class="icon">+</span>
+                            Add New Contact
+                        </button>
                     </td>
                 </tr>
             `;
@@ -676,8 +712,8 @@ async function loadAndDisplayContacts() {
                 const contact = doc.data();
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${contact.name}</td>
-                    <td>${contact.email}</td>
+                    <td>${contact.name || ''}</td>
+                    <td>${contact.email || ''}</td>
                     <td>${contact.phone || '-'}</td>
                     <td>
                         <div class="table-actions">
@@ -692,8 +728,12 @@ async function loadAndDisplayContacts() {
                 const editButton = row.querySelector('.edit');
                 const deleteButton = row.querySelector('.delete');
 
-                editButton?.addEventListener('click', () => handleEditContact(doc.id));
-                deleteButton?.addEventListener('click', () => handleDeleteContact(doc.id));
+                if (editButton) {
+                    editButton.addEventListener('click', () => handleEditContact(doc.id));
+                }
+                if (deleteButton) {
+                    deleteButton.addEventListener('click', () => handleDeleteContact(doc.id));
+                }
             });
         }
 
@@ -715,33 +755,22 @@ async function handleEditContact(contactId) {
         const modal = document.getElementById('newContactModal');
         if (!modal) return;
 
+        // Update modal title and button
+        const modalTitle = modal.querySelector('#contactModalTitle');
+        const submitBtn = modal.querySelector('#contactSubmitBtn');
+        if (modalTitle) modalTitle.textContent = 'Edit Contact';
+        if (submitBtn) submitBtn.textContent = 'Save Changes';
+
         // Fill form with contact data
         const form = modal.querySelector('form');
         if (!form) return;
 
-        form.querySelector('#contactName').value = contact.name;
-        form.querySelector('#contactEmail').value = contact.email;
+        const contactIdInput = form.querySelector('#contactId');
+        if (contactIdInput) contactIdInput.value = contactId;
+
+        form.querySelector('#contactName').value = contact.name || '';
+        form.querySelector('#contactEmail').value = contact.email || '';
         form.querySelector('#contactPhone').value = contact.phone || '';
-
-        // Update form submit handler for edit
-        form.onsubmit = async (e) => {
-            e.preventDefault();
-            try {
-                await db.collection('contacts').doc(contactId).update({
-                    name: form.querySelector('#contactName').value,
-                    email: form.querySelector('#contactEmail').value,
-                    phone: form.querySelector('#contactPhone').value,
-                    updatedAt: new Date()
-                });
-
-                modal.style.display = 'none';
-                form.reset();
-                window.location.reload();
-            } catch (error) {
-                console.error('Error updating contact:', error);
-                alert('Error updating contact. Please try again.');
-            }
-        };
 
         modal.style.display = 'block';
     } catch (error) {
@@ -751,16 +780,197 @@ async function handleEditContact(contactId) {
 }
 
 async function handleDeleteContact(contactId) {
-    if (!confirm('Are you sure you want to delete this contact?')) return;
-
     try {
-        await db.collection('contacts').doc(contactId).delete();
-        window.location.reload();
+        // Get contact data
+        const doc = await db.collection('contacts').doc(contactId).get();
+        if (!doc.exists) throw new Error('Contact not found');
+
+        const contact = doc.data();
+        const modal = document.getElementById('deleteContactModal');
+        if (!modal) return;
+
+        // Update modal with contact details
+        const nameElement = modal.querySelector('.contact-name');
+        const emailElement = modal.querySelector('.contact-email');
+        if (nameElement) nameElement.textContent = contact.name;
+        if (emailElement) emailElement.textContent = contact.email;
+
+        // Show modal
+        modal.style.display = 'block';
+
+        // Handle delete confirmation
+        const confirmBtn = modal.querySelector('#confirmDeleteBtn');
+        if (confirmBtn) {
+            // Remove any existing listeners
+            const newBtn = confirmBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+
+            // Add new delete listener
+            newBtn.addEventListener('click', async () => {
+                try {
+                    showLoading('Deleting contact...');
+                    await db.collection('contacts').doc(contactId).delete();
+                    modal.style.display = 'none';
+                    window.location.reload();
+                } catch (error) {
+                    console.error('Error deleting contact:', error);
+                    alert('Error deleting contact. Please try again.');
+                } finally {
+                    hideLoading();
+                }
+            });
+        }
     } catch (error) {
-        console.error('Error deleting contact:', error);
-        alert('Error deleting contact. Please try again.');
+        console.error('Error preparing delete:', error);
+        alert('Error preparing to delete contact. Please try again.');
     }
 }
 
 // Make the function available globally
-window.loadAndDisplayContacts = loadAndDisplayContacts; 
+window.loadAndDisplayContacts = loadAndDisplayContacts;
+
+// Update the date picker initialization function
+function initializeDatePickers() {
+    const today = new Date();
+    const defaultOptions = {
+        enableTime: false,
+        dateFormat: "Y-m-d",
+        minDate: today,
+        disableMobile: false,
+        locale: {
+            firstDayOfWeek: 1
+        }
+    };
+
+    // Initialize single date picker
+    const eventDatePicker = flatpickr("#eventDate", {
+        ...defaultOptions,
+        defaultDate: today,
+        altInput: true,
+        altFormat: "F j, Y",
+        dateFormat: "Y-m-d",
+    });
+
+    // Initialize date range pickers
+    const startDatePicker = flatpickr("#startDate", {
+        ...defaultOptions,
+        altInput: true,
+        altFormat: "F j, Y",
+        dateFormat: "Y-m-d",
+        onChange: function(selectedDates) {
+            if (selectedDates[0]) {
+                endDatePicker.set('minDate', selectedDates[0]);
+            }
+        }
+    });
+
+    const endDatePicker = flatpickr("#endDate", {
+        ...defaultOptions,
+        altInput: true,
+        altFormat: "F j, Y",
+        dateFormat: "Y-m-d",
+    });
+
+    return { eventDatePicker, startDatePicker, endDatePicker };
+}
+
+// Update the initializeDateTypeHandler function
+function initializeDateTypeHandler() {
+    const dateTypeSelect = document.getElementById('dateType');
+    const singleDateGroup = document.getElementById('singleDateGroup');
+    const dateRangeGroup = document.getElementById('dateRangeGroup');
+    
+    if (!dateTypeSelect || !singleDateGroup || !dateRangeGroup) return;
+
+    // Initialize date pickers
+    const pickers = initializeDatePickers();
+    
+    function toggleDatePickers(isMultiDay) {
+        // Toggle visibility using classes
+        singleDateGroup.classList.toggle('active', !isMultiDay);
+        dateRangeGroup.classList.toggle('active', isMultiDay);
+        
+        // Set required fields
+        document.getElementById('eventDate').required = !isMultiDay;
+        document.getElementById('startDate').required = isMultiDay;
+        document.getElementById('endDate').required = isMultiDay;
+
+        // Set default values
+        if (isMultiDay) {
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            
+            pickers.startDatePicker.setDate(today);
+            pickers.endDatePicker.setDate(tomorrow);
+            pickers.eventDatePicker.clear();
+        } else {
+            pickers.eventDatePicker.setDate(new Date());
+            pickers.startDatePicker.clear();
+            pickers.endDatePicker.clear();
+        }
+    }
+
+    // Add change event listener
+    dateTypeSelect.addEventListener('change', function() {
+        toggleDatePickers(this.value === 'multi');
+    });
+    
+    // Set initial state - default to single day
+    singleDateGroup.classList.add('active');
+    toggleDatePickers(false);
+}
+
+// Add this function to load contacts into the invitees list
+async function loadInviteesList() {
+    const inviteesList = document.getElementById('inviteesList');
+    if (!inviteesList) return;
+
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) throw new Error('User not authenticated');
+
+        // Get contacts from Firestore
+        const snapshot = await db.collection('contacts')
+            .where('userId', '==', user.uid)
+            .orderBy('name', 'asc')
+            .get();
+
+        // Clear loading state
+        inviteesList.innerHTML = '';
+
+        if (snapshot.empty) {
+            inviteesList.innerHTML = `
+                <div class="empty-state">
+                    <p>No contacts found. Add contacts to invite them to events.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Add each contact as a checkbox item
+        snapshot.forEach(doc => {
+            const contact = doc.data();
+            const inviteeItem = document.createElement('div');
+            inviteeItem.className = 'invitee-item';
+            inviteeItem.innerHTML = `
+                <input type="checkbox" 
+                       class="invitee-checkbox" 
+                       name="invitees" 
+                       value="${doc.id}" 
+                       id="invitee-${doc.id}">
+                <label class="invitee-name" for="invitee-${doc.id}">
+                    ${contact.name}
+                </label>
+            `;
+            inviteesList.appendChild(inviteeItem);
+        });
+    } catch (error) {
+        console.error('Error loading contacts:', error);
+        inviteesList.innerHTML = `
+            <div class="error-state">
+                <p>Error loading contacts. Please try again.</p>
+            </div>
+        `;
+    }
+} 
