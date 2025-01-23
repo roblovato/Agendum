@@ -1,0 +1,12 @@
+{
+  "rules": {
+    "events": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "public_events": {
+      ".read": true,
+      ".write": "auth != null"
+    }
+  }
+} 

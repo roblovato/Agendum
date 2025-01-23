@@ -2,43 +2,33 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Multi-User Availability Calendar</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Details - Agendum</title>
     <link rel="stylesheet" href="styles/styles.css">
-    <!-- Add Firebase scripts -->
+    <!-- Remove Flatpickr and keep only required Firebase scripts -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="scripts/firebase-config.js"></script>
 </head>
-<body class="event-body">
-    <div id="app">
-        <!-- Components will be loaded here -->
+<body>
+    <div class="event-page">
+        <div class="event-container">
+            <div class="event-header">
+                <h1 id="eventTitle"></h1>
+                <div class="event-meta">
+                    <p id="eventDate" class="event-date"></p>
+                    <p id="eventLocation" class="event-location"></p>
+                </div>
+            </div>
+            <div class="event-content">
+                <div class="event-description">
+                    <h2>Description</h2>
+                    <p id="eventDescription"></p>
+                </div>
+            </div>
+        </div>
     </div>
-
-    <script type="module">
-        import { 
-            createLoadingOverlay,
-            createUserNav,
-            createCalendar
-        } from './scripts/components.js';
-
-        // Initialize the app
-        document.getElementById('app').innerHTML = `
-            ${createLoadingOverlay()}
-            ${createUserNav()}
-            ${createCalendar()}
-        `;
-
-        // Import calendar functions
-        import { renderCalendar } from './scripts/calendar.js';
-
-        // Initialize calendar after components are loaded
-        document.addEventListener('DOMContentLoaded', () => {
-            if (document.querySelector('.calendar-grid')) {
-                renderCalendar();
-            }
-        });
-    </script>
-    <script type="module" src="scripts/scripts.js"></script>
+    <script src="scripts/event-page.js"></script>
 </body>
 </html>

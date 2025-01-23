@@ -101,6 +101,26 @@
         </div>
     </div>
 
+    <div class="modal modal-form" id="deleteEventModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Delete Event</h2>
+                <button class="close-button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this event? This action cannot be undone.</p>
+                <div class="event-details">
+                    <p class="event-title"></p>
+                    <p class="event-date"></p>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="button danger" id="confirmDeleteEventBtn">Permanently Delete</button>
+                <button type="button" class="button secondary close-button">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import { 
             createHeader, 
@@ -120,11 +140,10 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>Event</th>
+                                <th>Title</th>
                                 <th>Date</th>
-                                <th>Time</th>
                                 <th>Location</th>
-                                <th>Participants</th>
+                                <th>Invitees</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>

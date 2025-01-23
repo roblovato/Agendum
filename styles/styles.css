@@ -296,15 +296,35 @@ input:focus {
 .empty-state {
     text-align: center;
     padding: 40px 20px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .empty-state p {
     color: #666;
-    font-size: 1.1em;
     margin-bottom: 20px;
+}
+
+.empty-state .button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.empty-state .icon {
+    font-size: 1.2em;
+}
+
+.events-table td {
+    padding: 16px;
+    color: #2c3e50;
+}
+
+.action-button.view {
+    background-color: #e8f4fd;
+    color: #3498db;
+}
+
+.action-button.view:hover {
+    background-color: #d1e9fb;
 }
 
 .add-new-contact {
@@ -1166,4 +1186,128 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .date-input-group {
     flex: 1;
+}
+
+/* Event delete modal styles */
+.event-details {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+}
+
+.event-details p {
+    margin: 0;
+    padding: 4px 0;
+}
+
+.event-title {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.event-date {
+    color: #666;
+}
+
+#deleteEventModal .form-actions {
+    border-top: 1px solid #eee;
+    padding: 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 0;
+}
+
+#deleteEventModal .button {
+    margin: 0;
+}
+
+#deleteEventModal .modal-body {
+    padding: 20px;
+    color: #2c3e50;
+    border-bottom: none;
+}
+
+/* Phone input styles */
+.input-help {
+    font-size: 0.8em;
+    color: #666;
+    margin-top: 4px;
+}
+
+input[type="tel"] {
+    letter-spacing: 0.5px;
+}
+
+input[type="tel"]:invalid {
+    border-color: #e74c3c;
+}
+
+input[type="tel"]:invalid + .input-help {
+    color: #e74c3c;
+}
+
+input[type="tel"]:valid {
+    border-color: #2ecc71;
+}
+
+/* Event page styles */
+.event-page {
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.event-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 40px;
+}
+
+.event-header {
+    margin-bottom: 30px;
+}
+
+.event-header h1 {
+    margin: 0 0 20px 0;
+    color: #2c3e50;
+    font-size: 32px;
+}
+
+.event-meta {
+    color: #666;
+    font-size: 16px;
+}
+
+.event-meta p {
+    margin: 8px 0;
+}
+
+.event-date::before {
+    content: '📅';
+    margin-right: 8px;
+}
+
+.event-location::before {
+    content: '📍';
+    margin-right: 8px;
+}
+
+.event-content {
+    border-top: 1px solid #eee;
+    padding-top: 30px;
+}
+
+.event-description h2 {
+    color: #2c3e50;
+    margin: 0 0 16px 0;
+    font-size: 24px;
+}
+
+.event-description p {
+    color: #2c3e50;
+    line-height: 1.6;
+    margin: 0;
 }
