@@ -523,72 +523,54 @@ function formatPhoneNumber(input) {
 
 // Update initializeModal function to add phone number handling
 function initializeModal() {
-    const modals = document.querySelectorAll('.modal');
-    const closeButtons = document.querySelectorAll('.modal .close-button');
-    const newButton = document.querySelector('.nav-button.primary');
-
-    // Reset modal state when closing
-    function resetModal(modal) {
-        const form = modal.querySelector('form');
-        const modalTitle = modal.querySelector('#contactModalTitle');
-        const submitBtn = modal.querySelector('#contactSubmitBtn');
+    // Function to close modal
+    function closeModal(modalElement) {
+        if (!modalElement) return;
+        modalElement.style.display = 'none';
         
+        // Reset form if exists
+        const form = modalElement.querySelector('form');
         if (form) {
             form.reset();
-            const contactIdInput = form.querySelector('#contactId');
-            if (contactIdInput) contactIdInput.value = '';
         }
-        
-        // Reset title and button text to "Add" state
-        if (modalTitle) modalTitle.textContent = 'Add New Contact';
-        if (submitBtn) submitBtn.textContent = 'Add Contact';
-        
-        // Clear any contact details in delete modal
-        if (modal.id === 'deleteContactModal') {
-            const nameElement = modal.querySelector('.contact-name');
-            const emailElement = modal.querySelector('.contact-email');
-            if (nameElement) nameElement.textContent = '';
-            if (emailElement) emailElement.textContent = '';
-        }
-
-        modal.style.display = 'none';
     }
 
-    // Close modal handlers
-    closeButtons.forEach(button => {
-        button.addEventListener('click', (e) => {
-            e.preventDefault();
-            const modal = button.closest('.modal');
-            if (modal) resetModal(modal);
-        });
+    // Handle all modals
+    document.addEventListener('click', (e) => {
+        // Close modal when clicking outside
+        if (e.target.classList.contains('modal')) {
+            closeModal(e.target);
+        }
+        
+        // Close modal when clicking X button
+        if (e.target.classList.contains('close-button')) {
+            const modal = e.target.closest('.modal');
+            closeModal(modal);
+        }
+        
+        // Close modal when clicking Cancel button
+        if (e.target.classList.contains('secondary') && e.target.textContent.includes('Cancel')) {
+            const modal = e.target.closest('.modal');
+            closeModal(modal);
+        }
     });
 
-    modals.forEach(modal => {
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) resetModal(modal);
-        });
-    });
-
-    // Open modal handler
+    // Handle "Add New" button
+    const newButton = document.querySelector('.nav-button.primary');
     if (newButton) {
-        newButton.addEventListener('click', () => {
+        newButton.onclick = function() {
             const isContactsPage = window.location.pathname.includes('contacts.html');
             const modalId = isContactsPage ? 'newContactModal' : 'newEventModal';
             const modal = document.getElementById(modalId);
             if (modal) {
-                // Reset form and set "Add" state
-                resetModal(modal);
                 modal.style.display = 'block';
                 
                 if (modalId === 'newEventModal') {
                     initializeDateTypeHandler();
                     loadInviteesList();
                 }
-                
-                const firstInput = modal.querySelector('input:not([type="hidden"])');
-                if (firstInput) firstInput.focus();
             }
-        });
+        };
     }
 
     // Add phone number formatting
@@ -623,75 +605,73 @@ function initializeModal() {
     });
 
     // Update form submission handler
-    modals.forEach(modal => {
-        const form = modal.querySelector('form');
-        if (form) {
-            // Remove any existing submit handlers
-            const newForm = form.cloneNode(true);
-            form.parentNode.replaceChild(newForm, form);
+    document.querySelectorAll('.modal form').forEach(form => {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
             
-            // Add phone formatting to the new form
-            const phoneInput = newForm.querySelector('input[type="tel"]');
-            if (phoneInput) {
-                phoneInput.addEventListener('input', (e) => {
-                    e.target.value = formatPhoneNumber(e.target.value);
-                });
+            // Validate phone number if present
+            const phoneInput = form.querySelector('input[type="tel"]');
+            if (phoneInput && phoneInput.value) {
+                const phoneNumber = phoneInput.value.replace(/\D/g, '');
+                if (phoneNumber.length !== 10) {
+                    alert('Please enter a valid 10-digit phone number');
+                    return;
+                }
             }
 
-            newForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                
-                // Validate phone number if present
-                const phoneInput = newForm.querySelector('input[type="tel"]');
-                if (phoneInput && phoneInput.value) {
-                    const phoneNumber = phoneInput.value.replace(/\D/g, '');
-                    if (phoneNumber.length !== 10) {
-                        alert('Please enter a valid 10-digit phone number');
-                        return;
-                    }
-                }
+            // Disable submit button to prevent double submission
+            const submitButton = form.querySelector('button[type="submit"]');
+            if (submitButton) submitButton.disabled = true;
+            
+            showLoading('Saving...');
 
-                // Disable submit button to prevent double submission
-                const submitButton = newForm.querySelector('button[type="submit"]');
-                if (submitButton) submitButton.disabled = true;
+            try {
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
                 
-                showLoading('Saving...');
-
-                try {
-                    const formData = new FormData(newForm);
-                    const data = Object.fromEntries(formData.entries());
+                const isContactsPage = window.location.pathname.includes('contacts.html');
+                if (isContactsPage) {
+                    // Handle contacts form
+                    const contactId = data.contactId;
+                    delete data.contactId;
                     
-                    const isContactsPage = window.location.pathname.includes('contacts.html');
-                    if (isContactsPage) {
-                        // Handle contacts form
-                        const contactId = data.contactId;
-                        delete data.contactId;
-                        
-                        if (contactId) {
-                            await db.collection('contacts').doc(contactId).update({
-                                ...data,
-                                updatedAt: new Date()
-                            });
-                        } else {
-                            await addNewContact(data);
-                        }
+                    if (contactId) {
+                        await db.collection('contacts').doc(contactId).update({
+                            ...data,
+                            updatedAt: new Date()
+                        });
                     } else {
-                        // Handle event form
-                        const eventId = await addNewEvent(data);
-                        console.log('Event created successfully:', eventId);
+                        await addNewContact(data);
                     }
+                } else {
+                    // Handle event form
+                    const eventId = await addNewEvent(data);
                     
-                    resetModal(modal);
-                    window.location.reload();
-                } catch (error) {
-                    console.error('Error saving item:', error);
-                    alert(error.message || 'Error saving item. Please try again.');
-                    if (submitButton) submitButton.disabled = false;
-                } finally {
-                    hideLoading();
+                    // Log the event data
+                    console.log('Event saved successfully:', {
+                        id: eventId,
+                        title: data.title,
+                        description: data.description,
+                        location: data.location,
+                        dateType: data.dateType,
+                        date: data.date,
+                        startDate: data.startDate,
+                        endDate: data.endDate,
+                        invitees: data.invitees instanceof Array ? data.invitees : [data.invitees].filter(Boolean),
+                        formData: data
+                    });
                 }
-            });
-        }
+                
+                closeModal(form.closest('.modal'));
+                window.location.reload();
+            } catch (error) {
+                console.error('Error saving item:', error);
+                alert(error.message || 'Error saving item. Please try again.');
+                if (submitButton) submitButton.disabled = false;
+            } finally {
+                hideLoading();
+            }
+        });
     });
 }
 
@@ -733,6 +713,18 @@ async function handleEditEvent(eventId) {
         if (!doc.exists) throw new Error('Event not found');
 
         const event = doc.data();
+        
+        // Log the event being edited
+        // console.log('Editing event:', {
+        //     id: eventId,
+        //     ...event,
+        //     date: event.date || null,
+        //     startDate: event.startDate || null,
+        //     endDate: event.endDate || null,
+        //     invitees: event.invitees || []
+        // });
+        // return;
+
         const modal = document.getElementById('newEventModal');
         if (!modal) return;
 
@@ -744,32 +736,54 @@ async function handleEditEvent(eventId) {
         form.querySelector('#eventTitle').value = event.title || '';
         form.querySelector('#eventDescription').value = event.description || '';
         form.querySelector('#eventLocation').value = event.location || '';
+
+        // Show modal first so Flatpickr can initialize properly
+        modal.style.display = 'block';
+        
+        // Initialize date pickers
+        const pickers = initializeDatePickers();
         
         // Set date type
         const dateTypeSelect = form.querySelector('#dateType');
         if (dateTypeSelect) {
             dateTypeSelect.value = event.dateType;
-            dateTypeSelect.dispatchEvent(new Event('change'));
+            
+            const singleDateGroup = document.getElementById('singleDateGroup');
+            const dateRangeGroup = document.getElementById('dateRangeGroup');
+            
+            // Handle date fields based on type
+            if (event.dateType === 'multi') {
+                // Multi-day event
+                if (singleDateGroup) singleDateGroup.style.display = 'none';
+                if (dateRangeGroup) dateRangeGroup.style.display = 'block';
+                
+                // Set date range values after a short delay
+                setTimeout(() => {
+                    if (pickers.startDatePicker && event.startDate) {
+                        pickers.startDatePicker.setDate(event.startDate);
+                    }
+                    if (pickers.endDatePicker && event.endDate) {
+                        pickers.endDatePicker.setDate(event.endDate);
+                    }
+                }, 100);
+            } else {
+                // Single day event
+                if (singleDateGroup) singleDateGroup.style.display = 'block';
+                if (dateRangeGroup) dateRangeGroup.style.display = 'none';
+                
+                // Set single date value after a short delay
+                setTimeout(() => {
+                    if (pickers.eventDatePicker && event.date) {
+                        pickers.eventDatePicker.setDate(event.date);
+                    }
+                }, 100);
+            }
         }
 
-        // Set dates based on type
-        if (event.dateType === 'single') {
-            const eventDate = form.querySelector('#eventDate');
-            if (eventDate && eventDate._flatpickr) {
-                eventDate._flatpickr.setDate(event.date);
-            }
-        } else {
-            const startDate = form.querySelector('#startDate');
-            const endDate = form.querySelector('#endDate');
-            if (startDate && startDate._flatpickr) {
-                startDate._flatpickr.setDate(event.startDate);
-            }
-            if (endDate && endDate._flatpickr) {
-                endDate._flatpickr.setDate(event.endDate);
-            }
-        }
+        // Load invitees list and wait for it to complete
+        await loadInviteesList();
 
-        // Check invitees
+        // Check invitees after list is loaded
         event.invitees?.forEach(inviteeId => {
             const checkbox = form.querySelector(`#invitee-${inviteeId}`);
             if (checkbox) checkbox.checked = true;
@@ -786,8 +800,6 @@ async function handleEditEvent(eventId) {
         eventIdInput.value = eventId;
         form.appendChild(eventIdInput);
 
-        // Show modal
-        modal.style.display = 'block';
     } catch (error) {
         console.error('Error editing event:', error);
         alert('Error editing event. Please try again.');
@@ -1217,46 +1229,93 @@ function initializeDateTypeHandler() {
     const dateTypeSelect = document.getElementById('dateType');
     const singleDateGroup = document.getElementById('singleDateGroup');
     const dateRangeGroup = document.getElementById('dateRangeGroup');
-    
+    const pickers = initializeDatePickers();
+
     if (!dateTypeSelect || !singleDateGroup || !dateRangeGroup) return;
 
-    // Initialize date pickers
-    const pickers = initializeDatePickers();
-    
-    function toggleDatePickers(isMultiDay) {
-        // Toggle visibility using classes
-        singleDateGroup.classList.toggle('active', !isMultiDay);
-        dateRangeGroup.classList.toggle('active', isMultiDay);
+    // Function to show single date input
+    function showSingleDate() {
+        singleDateGroup.style.display = 'block';
+        dateRangeGroup.style.display = 'none';
         
-        // Set required fields
-        document.getElementById('eventDate').required = !isMultiDay;
-        document.getElementById('startDate').required = isMultiDay;
-        document.getElementById('endDate').required = isMultiDay;
+        const eventDate = document.getElementById('eventDate');
+        const startDate = document.getElementById('startDate');
+        const endDate = document.getElementById('endDate');
 
-        // Set default values
-        if (isMultiDay) {
-            const today = new Date();
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            
-            pickers.startDatePicker.setDate(today);
-            pickers.endDatePicker.setDate(tomorrow);
-            pickers.eventDatePicker.clear();
-        } else {
+        if (eventDate) {
+            eventDate.disabled = false;
+            eventDate.required = true;
+        }
+
+        if (startDate) {
+            startDate.disabled = true;
+            startDate.required = false;
+            startDate.value = '';
+        }
+
+        if (endDate) {
+            endDate.disabled = true;
+            endDate.required = false;
+            endDate.value = '';
+        }
+
+        // Set default date if empty
+        if (eventDate && !eventDate.value && pickers.eventDatePicker) {
             pickers.eventDatePicker.setDate(new Date());
-            pickers.startDatePicker.clear();
-            pickers.endDatePicker.clear();
         }
     }
 
-    // Add change event listener
+    // Function to show date range inputs
+    function showDateRange() {
+        singleDateGroup.style.display = 'none';
+        dateRangeGroup.style.display = 'block';
+        
+        const eventDate = document.getElementById('eventDate');
+        const startDate = document.getElementById('startDate');
+        const endDate = document.getElementById('endDate');
+
+        if (eventDate) {
+            eventDate.disabled = true;
+            eventDate.required = false;
+            eventDate.value = '';
+        }
+
+        if (startDate) {
+            startDate.disabled = false;
+            startDate.required = true;
+        }
+
+        if (endDate) {
+            endDate.disabled = false;
+            endDate.required = true;
+        }
+
+        // Set default dates if empty
+        if (!startDate.value && !endDate.value) {
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            if (pickers.startDatePicker) pickers.startDatePicker.setDate(today);
+            if (pickers.endDatePicker) pickers.endDatePicker.setDate(tomorrow);
+        }
+    }
+
+    // Handle date type changes
     dateTypeSelect.addEventListener('change', function() {
-        toggleDatePickers(this.value === 'multi');
+        if (this.value === 'multi') {
+            showDateRange();
+        } else {
+            showSingleDate();
+        }
     });
-    
-    // Set initial state - default to single day
-    singleDateGroup.classList.add('active');
-    toggleDatePickers(false);
+
+    // Set initial state
+    if (dateTypeSelect.value === 'multi') {
+        showDateRange();
+    } else {
+        showSingleDate();
+    }
 }
 
 // Add this function to load contacts into the invitees list

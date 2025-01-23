@@ -1112,7 +1112,15 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* Date picker styles */
 #singleDateGroup, #dateRangeGroup {
-    margin-bottom: 20px;
+    display: none;
+}
+
+#singleDateGroup.active {
+    display: block;
+}
+
+#dateRangeGroup.active {
+    display: block;
 }
 
 .date-range-wrapper {
@@ -1122,13 +1130,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .date-input-group {
     flex: 1;
-}
-
-.date-input-group label {
-    display: block;
-    margin-bottom: 8px;
-    color: #2c3e50;
-    font-weight: 600;
 }
 
 /* Flatpickr customization */
