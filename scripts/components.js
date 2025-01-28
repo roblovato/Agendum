@@ -2,9 +2,6 @@
 export const createHeader = (title) => `
     <header class="dashboard-header">
         <h1>${title}</h1>
-        <div class="header-actions">
-            <input type="text" placeholder="Search..." class="search-input">
-        </div>
     </header>
 `;
 
@@ -19,14 +16,14 @@ export const createSidebar = (activeButton) => `
                 <span class="icon">+</span>
                 New ${activeButton === 'contacts' ? 'Contact' : 'Event'}
             </button>
-            <a href="dashboard.html" class="nav-button ${activeButton === 'events' ? 'active' : ''}">
+            <button class="nav-button ${activeButton === 'events' ? 'active' : ''}" data-view="events">
                 <span class="icon">📅</span>
                 Events
-            </a>
-            <a href="contacts.html" class="nav-button ${activeButton === 'contacts' ? 'active' : ''}">
+            </button>
+            <button class="nav-button ${activeButton === 'contacts' ? 'active' : ''}" data-view="contacts">
                 <span class="icon">👥</span>
                 Contacts
-            </a>
+            </button>
         </div>
     </nav>
 `;

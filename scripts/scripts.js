@@ -3,6 +3,14 @@ window.selectUser = selectUser;
 window.previousMonth = previousMonth;
 window.nextMonth = nextMonth;
 
+// Add export statements at the top of the file
+export { 
+    loadAndDisplayEvents, 
+    loadAndDisplayContacts, 
+    initializeDateTypeHandler, 
+    loadInviteesList 
+};
+
 // Validation helper functions
 function validateEmail(input) {
     const value = input.value.trim();

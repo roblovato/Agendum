@@ -101,6 +101,49 @@
         </div>
     </div>
 
+    <div class="modal" id="newContactModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="contactModalTitle">Add New Contact</h2>
+                <button class="close-button">&times;</button>
+            </div>
+            <form class="modal-form" id="contactForm">
+                <input type="hidden" id="contactId" name="contactId">
+                <div class="form-group">
+                    <label for="contactName">Name</label>
+                    <div class="input-container">
+                        <input type="text" id="contactName" name="name" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="contactEmail">Email</label>
+                    <div class="input-container">
+                        <input type="email" id="contactEmail" name="email" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="contactPhone">Phone Number</label>
+                    <div class="input-container">
+                        <input type="tel" 
+                               id="contactPhone" 
+                               name="phone" 
+                               placeholder="(123) 456-7890"
+                               pattern="\(\d{3}\)\s\d{3}-\d{4}"
+                               title="Please enter a phone number in the format: (123) 456-7890">
+                        <div class="input-help">Format: (123) 456-7890</div>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="button primary" id="contactSubmitBtn">Add Contact</button>
+                    <button type="button" class="button secondary">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="modal modal-form" id="deleteEventModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -121,6 +164,26 @@
         </div>
     </div>
 
+    <div class="modal modal-form" id="deleteContactModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Delete Contact</h2>
+                <button class="close-button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this contact? This action cannot be undone.</p>
+                <div class="contact-details">
+                    <p class="contact-name"></p>
+                    <p class="contact-email"></p>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="button danger" id="confirmDeleteBtn">Permanently Delete</button>
+                <button type="button" class="button secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import { 
             createHeader, 
@@ -129,31 +192,225 @@
             createLoadingOverlay
         } from './scripts/components.js';
 
+        // Import necessary functions from scripts.js
+        import { 
+            loadAndDisplayEvents, 
+            loadAndDisplayContacts, 
+            initializeDateTypeHandler, 
+            loadInviteesList 
+        } from './scripts/scripts.js';
+
+        // Function to determine current view
+        function getCurrentView() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('view') || 'events';
+        }
+
+        // Function to update URL without page reload
+        function updateURL(view) {
+            const url = new URL(window.location);
+            url.searchParams.set('view', view);
+            window.history.pushState({}, '', url);
+        }
+
+        // Function to render the appropriate view
+        async function renderView(view) {
+            const mainContent = document.querySelector('.main-content');
+            if (!mainContent) return;
+
+            try {
+                // Wait for Firebase Auth to initialize
+                await new Promise((resolve) => {
+                    const unsubscribe = firebase.auth().onAuthStateChanged((user) => {
+                        unsubscribe();
+                        if (user) {
+                            resolve(user);
+                        } else {
+                            window.location.href = 'signin.html';
+                        }
+                    });
+                });
+
+                // Update title based on view
+                document.title = `${view.charAt(0).toUpperCase() + view.slice(1)} - Agendum`;
+                
+                // Update content based on view
+                mainContent.innerHTML = `
+                    ${createHeader(view === 'events' ? 'Your Events' : 'Your Contacts')}
+                    <div class="events-table ${view === 'contacts' ? 'contacts-table' : ''}">
+                        <table>
+                            <thead>
+                                <tr>
+                                    ${view === 'events' ? `
+                                        <th>Title</th>
+                                        <th>Date</th>
+                                        <th>Location</th>
+                                        <th>Invitees</th>
+                                    ` : `
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Phone</th>
+                                    `}
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Dynamic content will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                // Load appropriate data
+                if (view === 'events') {
+                    // Lazy load Flatpickr only when needed
+                    if (!window.flatpickr) {
+                        const link = document.createElement('link');
+                        link.rel = 'stylesheet';
+                        link.href = 'https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css';
+                        document.head.appendChild(link);
+
+                        await new Promise((resolve) => {
+                            const script = document.createElement('script');
+                            script.src = 'https://cdn.jsdelivr.net/npm/flatpickr';
+                            script.onload = () => {
+                                // Initialize Flatpickr after it's loaded
+                                window.flatpickr = flatpickr;
+                                resolve();
+                            };
+                            document.head.appendChild(script);
+                        });
+                    }
+                    await loadAndDisplayEvents();
+                } else {
+                    await loadAndDisplayContacts();
+                }
+
+                // Update the primary button text
+                const primaryButton = document.querySelector('.nav-button.primary');
+                if (primaryButton) {
+                    primaryButton.innerHTML = `
+                        <span class="icon">+</span>
+                        New ${view === 'contacts' ? 'Contact' : 'Event'}
+                    `;
+                }
+            } catch (error) {
+                console.error('Error rendering view:', error);
+                if (error.message === 'User not authenticated') {
+                    window.location.href = 'signin.html';
+                }
+            }
+        }
+
         // Initialize the app
         document.getElementById('app').innerHTML = `
             ${createLoadingOverlay()}
-            ${createSidebar('events')}
+            ${createSidebar(getCurrentView())}
             ${createUserNav()}
             <main class="main-content">
-                ${createHeader('Your Events')}
-                <div class="events-table">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Title</th>
-                                <th>Date</th>
-                                <th>Location</th>
-                                <th>Invitees</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Dynamic content will be loaded here -->
-                        </tbody>
-                    </table>
-                </div>
+                <!-- Content will be loaded here -->
             </main>
         `;
+
+        // Update the navigation handler
+        document.addEventListener('click', async (e) => {
+            const navButton = e.target.closest('.nav-button');
+            if (!navButton) return;
+
+            // Handle primary (New) button
+            if (navButton.classList.contains('primary')) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Get current view from URL and close any open modals first
+                const params = new URLSearchParams(window.location.search);
+                const currentView = params.get('view') || 'events';
+                
+                // Close all modals first
+                document.querySelectorAll('.modal').forEach(modal => {
+                    modal.style.display = 'none';
+                });
+                
+                // Determine which modal to show
+                if (currentView === 'contacts') {
+                    const contactModal = document.getElementById('newContactModal');
+                    if (contactModal) {
+                        // Reset contact form
+                        const form = contactModal.querySelector('form');
+                        if (form) {
+                            form.reset();
+                            const hiddenInputs = form.querySelectorAll('input[type="hidden"]');
+                            hiddenInputs.forEach(input => input.value = '');
+                        }
+                        
+                        // Reset modal title and button
+                        const modalTitle = contactModal.querySelector('#contactModalTitle');
+                        const submitBtn = contactModal.querySelector('#contactSubmitBtn');
+                        if (modalTitle) modalTitle.textContent = 'Add New Contact';
+                        if (submitBtn) submitBtn.textContent = 'Add Contact';
+                        
+                        contactModal.style.display = 'block';
+                    }
+                    return;
+                }
+                
+                // Handle event modal
+                if (currentView === 'events') {
+                    const eventModal = document.getElementById('newEventModal');
+                    if (eventModal) {
+                        // Reset event form
+                        const form = eventModal.querySelector('form');
+                        if (form) {
+                            form.reset();
+                        }
+
+                        // Show modal
+                        eventModal.style.display = 'block';
+
+                        // Initialize features with a small delay to ensure DOM is ready
+                        setTimeout(() => {
+                            try {
+                                initializeDateTypeHandler();
+                                loadInviteesList();
+                            } catch (error) {
+                                console.error('Error initializing event features:', error);
+                            }
+                        }, 100);
+                    }
+                    return;
+                }
+            }
+
+            // Handle navigation buttons
+            if (navButton) {
+                e.preventDefault();
+                const view = navButton.getAttribute('data-view') || 'events';
+                updateURL(view);
+                renderView(view);
+                
+                // Update sidebar active state
+                document.querySelectorAll('.nav-button').forEach(btn => {
+                    btn.classList.toggle('active', btn.getAttribute('data-view') === view);
+                });
+
+                // Update the primary button text
+                const primaryButton = document.querySelector('.nav-button.primary');
+                if (primaryButton) {
+                    primaryButton.innerHTML = `
+                        <span class="icon">+</span>
+                        New ${view === 'contacts' ? 'Contact' : 'Event'}
+                    `;
+                }
+            }
+        });
+
+        // Handle browser back/forward
+        window.addEventListener('popstate', () => {
+            renderView(getCurrentView());
+        });
+
+        // Initial render
+        renderView(getCurrentView());
     </script>
     <script type="module" src="scripts/scripts.js"></script>
 </body>

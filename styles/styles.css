@@ -864,7 +864,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     font-size: 0.8em;
     padding: 2px 6px;
     border-radius: 4px;
-    color: white;
 }
 
 .user-name.user1 { background-color: rgba(255, 0, 0, 0.8); }
