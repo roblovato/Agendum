@@ -529,149 +529,44 @@ function formatPhoneNumber(input) {
     return phoneNumber;
 }
 
-// Update initializeModal function to add phone number handling
+// Update initializeModal function
 function initializeModal() {
-    // Function to close modal
-    function closeModal(modalElement) {
-        if (!modalElement) return;
-        modalElement.style.display = 'none';
-        
-        // Reset form if exists
-        const form = modalElement.querySelector('form');
-        if (form) {
-            form.reset();
-        }
-    }
-
-    // Handle all modals
-    document.addEventListener('click', (e) => {
-        // Close modal when clicking outside
-        if (e.target.classList.contains('modal')) {
-            closeModal(e.target);
-        }
-        
-        // Close modal when clicking X button
-        if (e.target.classList.contains('close-button')) {
-            const modal = e.target.closest('.modal');
-            closeModal(modal);
-        }
-        
-        // Close modal when clicking Cancel button
-        if (e.target.classList.contains('secondary') && e.target.textContent.includes('Cancel')) {
-            const modal = e.target.closest('.modal');
-            closeModal(modal);
-        }
-    });
-
-    // Handle "Add New" button
-    const newButton = document.querySelector('.nav-button.primary');
-    if (newButton) {
-        newButton.onclick = function() {
-            const isContactsPage = window.location.pathname.includes('contacts.html');
-            const modalId = isContactsPage ? 'newContactModal' : 'newEventModal';
-            const modal = document.getElementById(modalId);
+    // Handle modal close buttons
+    document.querySelectorAll('.close-button, .button.secondary').forEach(button => {
+        button.addEventListener('click', () => {
+            const modal = button.closest('.modal');
             if (modal) {
-                modal.style.display = 'block';
-                
-                if (modalId === 'newEventModal') {
-                    initializeDateTypeHandler();
-                    loadInviteesList();
-                }
+                modal.style.display = 'none';
+                const form = modal.querySelector('form');
+                if (form) form.reset();
             }
-        };
-    }
-
-    // Add phone number formatting
-    const phoneInputs = document.querySelectorAll('input[type="tel"]');
-    phoneInputs.forEach(input => {
-        input.addEventListener('input', (e) => {
-            // Store cursor position
-            const start = e.target.selectionStart;
-            const end = e.target.selectionEnd;
-            const previousLength = e.target.value.length;
-
-            // Format the phone number
-            e.target.value = formatPhoneNumber(e.target.value);
-
-            // Adjust cursor position if needed
-            const newLength = e.target.value.length;
-            if (start && end) {
-                const cursorPos = start + (newLength - previousLength);
-                e.target.setSelectionRange(cursorPos, cursorPos);
-            }
-        });
-
-        // Add validation
-        input.addEventListener('invalid', (e) => {
-            e.preventDefault();
-            input.setCustomValidity('Please enter a valid 10-digit phone number');
-        });
-
-        input.addEventListener('input', () => {
-            input.setCustomValidity('');
         });
     });
 
-    // Update form submission handler
+    // Handle form submissions
     document.querySelectorAll('.modal form').forEach(form => {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            // Validate phone number if present
-            const phoneInput = form.querySelector('input[type="tel"]');
-            if (phoneInput && phoneInput.value) {
-                const phoneNumber = phoneInput.value.replace(/\D/g, '');
-                if (phoneNumber.length !== 10) {
-                    alert('Please enter a valid 10-digit phone number');
-                    return;
-                }
-            }
-
-            // Disable submit button to prevent double submission
             const submitButton = form.querySelector('button[type="submit"]');
             if (submitButton) submitButton.disabled = true;
             
-            showLoading('Saving...');
-
             try {
-                const formData = new FormData(form);
-                const data = Object.fromEntries(formData.entries());
+                showLoading('Saving...');
                 
-                const isContactsPage = window.location.pathname.includes('contacts.html');
-                if (isContactsPage) {
-                    // Handle contacts form
-                    const contactId = data.contactId;
-                    delete data.contactId;
-                    
-                    if (contactId) {
-                        await db.collection('contacts').doc(contactId).update({
-                            ...data,
-                            updatedAt: new Date()
-                        });
-                    } else {
-                        await addNewContact(data);
-                    }
+                // Determine which form is being submitted
+                if (form.id === 'contactForm') {
+                    const formData = new FormData(form);
+                    const contactData = {
+                        name: formData.get('name'),
+                        email: formData.get('email'),
+                        phone: formData.get('phone')
+                    };
+                    await addNewContact(contactData);
                 } else {
                     // Handle event form
-                    const eventId = await addNewEvent(data);
-                    
-                    // Log the event data
-                    console.log('Event saved successfully:', {
-                        id: eventId,
-                        title: data.title,
-                        description: data.description,
-                        location: data.location,
-                        dateType: data.dateType,
-                        date: data.date,
-                        startDate: data.startDate,
-                        endDate: data.endDate,
-                        invitees: data.invitees instanceof Array ? data.invitees : [data.invitees].filter(Boolean),
-                        formData: data
-                    });
+                    await saveEvent(form);
                 }
                 
-                closeModal(form.closest('.modal'));
-                window.location.reload();
             } catch (error) {
                 console.error('Error saving item:', error);
                 alert(error.message || 'Error saving item. Please try again.');
@@ -683,32 +578,61 @@ function initializeModal() {
     });
 }
 
-// Update addNewContact function to format phone number before saving
+// Update addNewContact function
 async function addNewContact(contactData) {
-    const user = firebase.auth().currentUser;
-    if (!user) throw new Error('User not authenticated');
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) throw new Error('User not authenticated');
 
-    // Format phone number to E.164 format for Twilio (+1XXXXXXXXXX)
-    if (contactData.phone) {
-        const phoneNumber = contactData.phone.replace(/\D/g, '');
-        contactData.phone = `+1${phoneNumber}`;
+        // Validate required fields
+        if (!contactData.name?.trim()) throw new Error('Name is required');
+        if (!contactData.email?.trim()) throw new Error('Email is required');
+
+        // Format phone number if provided
+        let formattedPhone = '';
+        if (contactData.phone) {
+            // Remove all non-digits
+            const digits = contactData.phone.replace(/\D/g, '');
+            // Format as (XXX) XXX-XXXX
+            formattedPhone = digits.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
+        }
+
+        // Create contact object with validated/formatted data
+        const contact = {
+            name: contactData.name.trim(),
+            email: contactData.email.trim(),
+            phone: formattedPhone,
+            userId: user.uid,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        // Save to Firestore
+        await db.collection('contacts').add(contact);
+        
+        // Close modal and refresh contacts
+        const modal = document.getElementById('newContactModal');
+        if (modal) {
+            modal.style.display = 'none';
+            // Reset form
+            const form = modal.querySelector('form');
+            if (form) form.reset();
+        }
+        
+        // Refresh contacts list
+        await loadAndDisplayContacts();
+
+    } catch (error) {
+        console.error('Error adding contact:', error);
+        throw error; // Re-throw to be handled by the caller
     }
-
-    await db.collection('contacts').add({
-        ...contactData,
-        userId: user.uid,
-        createdAt: new Date()
-    });
 }
 
-// Add event handler functions
+// Update the handleViewEvent function
 async function handleViewEvent(eventId) {
     try {
-        const doc = await db.collection('events').doc(eventId).get();
-        if (!doc.exists) throw new Error('Event not found');
-
-        // For now, just redirect to a view page with the event ID
-        window.location.href = `event.html?id=${eventId}`;
+        // Open event in new tab
+        window.open(`/event.html?id=${eventId}`, '_blank');
     } catch (error) {
         console.error('Error viewing event:', error);
         alert('Error viewing event. Please try again.');
@@ -814,64 +738,34 @@ async function handleEditEvent(eventId) {
     }
 }
 
+// Add delete handlers
 async function handleDeleteEvent(eventId) {
     try {
-        const doc = await db.collection('events').doc(eventId).get();
-        if (!doc.exists) throw new Error('Event not found');
-
-        const event = doc.data();
-        const modal = document.getElementById('deleteEventModal');
-        if (!modal) return;
-
-        // Update modal with event details
-        const titleElement = modal.querySelector('.event-title');
-        const dateElement = modal.querySelector('.event-date');
+        if (!confirm('Are you sure you want to delete this event?')) return;
         
-        if (titleElement) titleElement.textContent = event.title;
-        if (dateElement) {
-            let dateDisplay = '';
-            if (event.dateType === 'single') {
-                dateDisplay = formatDate(event.date);
-            } else {
-                dateDisplay = `${formatDate(event.startDate)} - ${formatDate(event.endDate)}`;
-            }
-            dateElement.textContent = dateDisplay;
+        showLoading('Deleting event...');
+        const user = firebase.auth().currentUser;
+        if (!user) throw new Error('User not authenticated');
+
+        // Get event to verify ownership
+        const eventDoc = await db.collection('events').doc(eventId).get();
+        if (!eventDoc.exists) throw new Error('Event not found');
+        
+        const eventData = eventDoc.data();
+        if (eventData.createdBy.userId !== user.uid) {
+            throw new Error('You can only delete your own events');
         }
 
-        // Show modal
-        modal.style.display = 'block';
-
-        // Handle delete confirmation
-        const confirmBtn = modal.querySelector('#confirmDeleteEventBtn');
-        if (confirmBtn) {
-            // Remove any existing listeners
-            const newBtn = confirmBtn.cloneNode(true);
-            confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
-
-            // Add new delete listener
-            newBtn.addEventListener('click', async () => {
-                try {
-                    showLoading('Deleting event...');
-                    
-                    // Delete from both collections
-                    await Promise.all([
-                        db.collection('events').doc(eventId).delete(),
-                        db.collection('public_events').doc(eventId).delete()
-                    ]);
-
-                    modal.style.display = 'none';
-                    window.location.reload();
-                } catch (error) {
-                    console.error('Error deleting event:', error);
-                    alert('Error deleting event. Please try again.');
-                } finally {
-                    hideLoading();
-                }
-            });
-        }
+        // Delete the event
+        await db.collection('events').doc(eventId).delete();
+        
+        // Refresh the events list
+        await loadAndDisplayEvents();
+        hideLoading();
     } catch (error) {
-        console.error('Error preparing delete:', error);
-        alert('Error preparing to delete event. Please try again.');
+        console.error('Error deleting event:', error);
+        hideLoading();
+        alert(error.message || 'Error deleting event. Please try again.');
     }
 }
 
@@ -1139,48 +1033,31 @@ async function handleEditContact(contactId) {
 
 async function handleDeleteContact(contactId) {
     try {
-        // Get contact data
-        const doc = await db.collection('contacts').doc(contactId).get();
-        if (!doc.exists) throw new Error('Contact not found');
+        if (!confirm('Are you sure you want to delete this contact?')) return;
+        
+        showLoading('Deleting contact...');
+        const user = firebase.auth().currentUser;
+        if (!user) throw new Error('User not authenticated');
 
-        const contact = doc.data();
-        const modal = document.getElementById('deleteContactModal');
-        if (!modal) return;
-
-        // Update modal with contact details
-        const nameElement = modal.querySelector('.contact-name');
-        const emailElement = modal.querySelector('.contact-email');
-        if (nameElement) nameElement.textContent = contact.name;
-        if (emailElement) emailElement.textContent = contact.email;
-
-        // Show modal
-        modal.style.display = 'block';
-
-        // Handle delete confirmation
-        const confirmBtn = modal.querySelector('#confirmDeleteBtn');
-        if (confirmBtn) {
-            // Remove any existing listeners
-            const newBtn = confirmBtn.cloneNode(true);
-            confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
-
-            // Add new delete listener
-            newBtn.addEventListener('click', async () => {
-                try {
-                    showLoading('Deleting contact...');
-                    await db.collection('contacts').doc(contactId).delete();
-                    modal.style.display = 'none';
-                    window.location.reload();
-                } catch (error) {
-                    console.error('Error deleting contact:', error);
-                    alert('Error deleting contact. Please try again.');
-                } finally {
-                    hideLoading();
-                }
-            });
+        // Get contact to verify ownership
+        const contactDoc = await db.collection('contacts').doc(contactId).get();
+        if (!contactDoc.exists) throw new Error('Contact not found');
+        
+        const contactData = contactDoc.data();
+        if (contactData.userId !== user.uid) {
+            throw new Error('You can only delete your own contacts');
         }
+
+        // Delete the contact
+        await db.collection('contacts').doc(contactId).delete();
+        
+        // Refresh the contacts list
+        await loadAndDisplayContacts();
+        hideLoading();
     } catch (error) {
-        console.error('Error preparing delete:', error);
-        alert('Error preparing to delete contact. Please try again.');
+        console.error('Error deleting contact:', error);
+        hideLoading();
+        alert(error.message || 'Error deleting contact. Please try again.');
     }
 }
 
@@ -1536,5 +1413,65 @@ function initializeDashboard() {
                     console.error('Error signing out:', error);
                 });
         });
+    }
+}
+
+// Update the saveEvent function
+async function saveEvent(form) {
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) throw new Error('User not authenticated');
+
+        // Get form data
+        const formData = new FormData(form);
+        const dateType = formData.get('dateType');
+        
+        // Validate required fields
+        const title = formData.get('title')?.trim();
+        if (!title) throw new Error('Title is required');
+
+        // Create event object
+        const eventData = {
+            title: title,
+            description: formData.get('description')?.trim() || '',
+            location: formData.get('location')?.trim() || '',
+            dateType: dateType,
+            createdBy: {
+                userId: user.uid,
+                email: user.email
+            },
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        // Add date fields based on date type
+        if (dateType === 'single') {
+            eventData.date = formData.get('date');
+            if (!eventData.date) throw new Error('Date is required');
+        } else {
+            eventData.startDate = formData.get('startDate');
+            eventData.endDate = formData.get('endDate');
+            if (!eventData.startDate || !eventData.endDate) {
+                throw new Error('Start and end dates are required');
+            }
+        }
+
+        // Get selected invitees
+        const invitees = Array.from(form.querySelectorAll('input[name="invitees"]:checked'))
+            .map(checkbox => checkbox.value);
+        eventData.invitees = invitees;
+
+        // Save to Firestore
+        const docRef = await db.collection('events').add(eventData);
+        console.log('Event saved successfully:', docRef.id);
+
+        // Close modal and refresh events
+        const modal = document.getElementById('newEventModal');
+        if (modal) modal.style.display = 'none';
+        await loadAndDisplayEvents();
+
+    } catch (error) {
+        console.error('Error saving event:', error);
+        alert(error.message || 'Error saving event. Please try again.');
     }
 } 

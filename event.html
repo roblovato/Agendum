@@ -3,32 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Event Details - Agendum</title>
+    <title>View Event - Agendum</title>
     <link rel="stylesheet" href="styles/styles.css">
-    <!-- Remove Flatpickr and keep only required Firebase scripts -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="scripts/firebase-config.js"></script>
 </head>
 <body>
-    <div class="event-page">
-        <div class="event-container">
-            <div class="event-header">
-                <h1 id="eventTitle"></h1>
-                <div class="event-meta">
-                    <p id="eventDate" class="event-date"></p>
-                    <p id="eventLocation" class="event-location"></p>
-                </div>
+    <div class="calendar-container">
+        <div class="calendar">
+            <div class="month-header">
+                <button class="prev-month">&lt; Previous</button>
+                <h2 id="monthYear"></h2>
+                <button class="next-month">Next &gt;</button>
             </div>
-            <div class="event-content">
-                <div class="event-description">
-                    <h2>Description</h2>
-                    <p id="eventDescription"></p>
-                </div>
+            
+            <!-- New separate weekday header div -->
+            <div class="weekday-headers">
+                <div class="weekday-header">Sun</div>
+                <div class="weekday-header">Mon</div>
+                <div class="weekday-header">Tue</div>
+                <div class="weekday-header">Wed</div>
+                <div class="weekday-header">Thu</div>
+                <div class="weekday-header">Fri</div>
+                <div class="weekday-header">Sat</div>
+            </div>
+
+            <div class="calendar-grid">
+                <!-- Days will be inserted here by JavaScript -->
             </div>
         </div>
     </div>
-    <script src="scripts/event-page.js"></script>
+
+    <div class="event-tooltip" id="eventTooltip">
+        <!-- Event details will be inserted here -->
+    </div>
+
+    <script type="module">
+        import { initializeCalendar } from './scripts/calendar.js';
+        
+        // Get event ID from URL
+        const params = new URLSearchParams(window.location.search);
+        const eventId = params.get('id');
+        
+        if (!eventId) {
+            document.body.innerHTML = '<div class="error">No event specified</div>';
+        } else {
+            initializeCalendar(eventId);
+        }
+    </script>
 </body>
 </html>

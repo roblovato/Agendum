@@ -71,39 +71,3 @@ export const createAuthScripts = () => `
     <script src="scripts/firebase-config.js"></script>
     <script type="module" src="scripts/scripts.js"></script>
 `;
-
-// Add calendar component
-export const createCalendar = () => `
-    <div class="left-column">
-        <div class="user-controls">
-            <h3>Select User:</h3>
-            <button class="user-button active" style="background-color: rgba(255, 0, 0, 0.8)" data-user="user1">User 1</button>
-            <button class="user-button" style="background-color: rgba(0, 0, 255, 0.8)" data-user="user2">User 2</button>
-            <button class="user-button" style="background-color: rgba(0, 255, 0, 0.8)" data-user="user3">User 3</button>
-        </div>
-
-        <div class="available-dates">
-            <h2>Available Dates</h2>
-            <ul class="date-list" id="dateList"></ul>
-        </div>
-    </div>
-
-    <div class="right-column">
-        <div class="calendar">
-            <div class="month-header">
-                <button class="prev-month">&lt; Previous</button>
-                <h2 id="monthYear"></h2>
-                <button class="next-month">Next &gt;</button>
-            </div>
-            <div class="calendar-grid">
-                <div class="weekday-header">Sun</div>
-                <div class="weekday-header">Mon</div>
-                <div class="weekday-header">Tue</div>
-                <div class="weekday-header">Wed</div>
-                <div class="weekday-header">Thu</div>
-                <div class="weekday-header">Fri</div>
-                <div class="weekday-header">Sat</div>
-            </div>
-        </div>
-    </div>
-`; 
