@@ -1,3 +1,14 @@
+// Add formatDate function at the top with other utility functions
+function formatDate(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+    });
+}
+
 // Calendar state
 let currentDate = new Date();
 let eventData = null;
@@ -25,86 +36,139 @@ const colorPalette = [
 // Add submitter color mapping
 let submitterColors = new Map();
 
+// Add state for date boundaries
+let minDate = null;
+let maxDate = null;
+
+// Add state to track if user has submitted
+let hasSubmitted = false;
+
 // Calendar functions
-export async function initializeCalendar(eventId) {
+export async function initializeCalendar() {
     try {
-        // Make sure Firebase is initialized
-        if (!firebase.apps.length) {
-            throw new Error('Firebase not initialized');
+        // Get event ID from URL
+        const params = new URLSearchParams(window.location.search);
+        const eventId = params.get('id');
+        
+        if (!eventId) {
+            throw new Error('No event ID specified');
         }
 
-        // Get Firestore instance
-        const db = firebase.firestore();
+        // Show loading state
+        const calendarContainer = document.querySelector('.calendar-container');
+        if (calendarContainer) {
+            calendarContainer.innerHTML = `
+                <div class="loading-message" style="text-align: center; padding: 2rem;">
+                    <h3>Loading Calendar...</h3>
+                </div>
+            `;
+        }
+
+        // Load the event (no auth required per rules)
+        const eventDoc = await db.collection('events').doc(eventId).get();
         
-        // Fetch event data
-        const doc = await db.collection('events').doc(eventId).get();
-        if (!doc.exists) {
+        if (!eventDoc.exists) {
             throw new Error('Event not found');
         }
 
+        // Set event data
         eventData = {
-            id: doc.id,
-            ...doc.data()
+            id: eventDoc.id,
+            ...eventDoc.data()
         };
-        
-        // Log event details
-        console.log('Event Details:', {
-            id: eventData.id,
-            title: eventData.title,
-            description: eventData.description,
-            dateType: eventData.dateType,
-            date: eventData.date,
-            startDate: eventData.startDate,
-            endDate: eventData.endDate,
-            location: eventData.location,
-            createdBy: eventData.createdBy,
-            invitees: eventData.invitees,
-            createdAt: eventData.createdAt?.toDate(),
-            updatedAt: eventData.updatedAt?.toDate(),
-            rawData: eventData // Full raw data object
-        });
-        
-        // Set current date to event date
-        if (eventData.dateType === 'single') {
-            currentDate = new Date(eventData.date);
-        } else {
-            currentDate = new Date(eventData.startDate);
-        }
 
-        // Add save button
-        addSaveButton();
-        
-        // Load existing selections if user is authenticated
-        const user = firebase.auth().currentUser;
-        if (user) {
-            const availabilityDoc = await db.collection('events')
-                .doc(eventId)
+        // Set date boundaries
+        minDate = new Date(eventData.startDate);
+        maxDate = new Date(eventData.endDate);
+        currentDate = new Date(minDate);
+
+        // Create calendar structure
+        calendarContainer.innerHTML = `
+            <div class="calendar">
+                <div class="event-details">
+                    <h1>${eventData.title}</h1>
+                    <div class="event-info">
+                        <p><strong>Location:</strong> ${eventData.location}</p>
+                        <p><strong>Date:</strong> ${formatDate(eventData.startDate)} - ${formatDate(eventData.endDate)}</p>
+                        ${eventData.description ? `<p><strong>Description:</strong> ${eventData.description}</p>` : ''}
+                    </div>
+                </div>
+                <div class="calendar-header">
+                    <button class="prev-month">&lt;</button>
+                    <h2 id="monthYear"></h2>
+                    <button class="next-month">&gt;</button>
+                </div>
+                <div class="calendar-grid">
+                    <div class="weekday-header">Sun</div>
+                    <div class="weekday-header">Mon</div>
+                    <div class="weekday-header">Tue</div>
+                    <div class="weekday-header">Wed</div>
+                    <div class="weekday-header">Thu</div>
+                    <div class="weekday-header">Fri</div>
+                    <div class="weekday-header">Sat</div>
+                </div>
+            </div>
+        `;
+
+        // Add the save button and name input
+        const { button: saveButton, nameInput } = addSaveButton();
+
+        // Load existing availabilities (no auth required per rules)
+        try {
+            const availabilitySnapshot = await db.collection('events')
+                .doc(eventData.id)
                 .collection('availability')
-                .doc(user.uid)
                 .get();
-            
-            if (availabilityDoc.exists) {
-                selectedDates = new Set(availabilityDoc.data().dates);
+
+            allAvailabilities = availabilitySnapshot.docs.map(doc => ({
+                submitterId: doc.id,
+                ...doc.data()
+            }));
+
+            // Check if current user has already submitted using localStorage
+            const submissionKey = `event_${eventId}_submitted`;
+            if (localStorage.getItem(submissionKey)) {
+                hasSubmitted = true;
+                if (saveButton) saveButton.style.display = 'none';
+                if (nameInput) nameInput.disabled = true;
             }
+        } catch (error) {
+            console.error('Error loading availabilities:', error);
         }
 
-        // Load all availability submissions
-        const availabilitySnapshot = await db.collection('events')
-            .doc(eventId)
-            .collection('availability')
-            .get();
-        
-        allAvailabilities = availabilitySnapshot.docs.map(doc => ({
-            ...doc.data(),
-            id: doc.id
-        }));
-
-        // Initialize calendar
-        renderCalendar();
+        // Initialize event listeners
         initializeEventListeners();
+
+        // Set initial dates
+        const events = [];
+        events.push({
+            id: eventData.id,
+            ...eventData
+        });
+
+        // Render calendar with events
+        renderCalendar(events);
+
+        // Update page title
+        const eventTitle = document.querySelector('title');
+        if (eventTitle) {
+            eventTitle.textContent = `${eventData.title} - Agendum`;
+        }
+
     } catch (error) {
-        console.error('Error loading event:', error);
-        document.body.innerHTML = `<div class="error">Error loading event: ${error.message}</div>`;
+        console.error('Error initializing calendar:', error);
+        const calendarContainer = document.querySelector('.calendar-container');
+        if (calendarContainer) {
+            calendarContainer.innerHTML = `
+                <div class="error-message" style="text-align: center; padding: 2rem;">
+                    <h3>Error Loading Calendar</h3>
+                    <p>${error.message}</p>
+                    <button onclick="window.location.reload()" class="button primary" style="margin-top: 1rem;">
+                        Retry
+                    </button>
+                </div>
+            `;
+        }
     }
 }
 
@@ -115,20 +179,56 @@ function initializeEventListeners() {
 }
 
 export function previousMonth() {
-    currentDate.setMonth(currentDate.getMonth() - 1);
-    renderCalendar();
+    const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+    const minYearMonth = minDate.getFullYear() * 12 + minDate.getMonth();
+    const newYearMonth = newDate.getFullYear() * 12 + newDate.getMonth();
+    
+    if (newYearMonth >= minYearMonth) {
+        currentDate = newDate;
+        renderCalendar();
+    }
 }
 
 export function nextMonth() {
-    currentDate.setMonth(currentDate.getMonth() + 1);
-    renderCalendar();
+    const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+    const maxYearMonth = maxDate.getFullYear() * 12 + maxDate.getMonth();
+    const newYearMonth = newDate.getFullYear() * 12 + newDate.getMonth();
+    
+    if (newYearMonth <= maxYearMonth) {
+        currentDate = newDate;
+        renderCalendar();
+    }
 }
 
-export function renderCalendar() {
+export function renderCalendar(events) {
     const monthYear = document.getElementById('monthYear');
     const calendarGrid = document.querySelector('.calendar-grid');
     if (!monthYear || !calendarGrid || !eventData) return;
     
+    // Update navigation button states
+    const prevButton = document.querySelector('.prev-month');
+    const nextButton = document.querySelector('.next-month');
+
+    if (prevButton) {
+        const prevMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+        const minYearMonth = minDate.getFullYear() * 12 + minDate.getMonth();
+        const prevYearMonth = prevMonth.getFullYear() * 12 + prevMonth.getMonth();
+        const canGoPrev = prevYearMonth >= minYearMonth;
+        
+        prevButton.classList.toggle('disabled', !canGoPrev);
+        prevButton.disabled = !canGoPrev;
+    }
+
+    if (nextButton) {
+        const nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+        const maxYearMonth = maxDate.getFullYear() * 12 + maxDate.getMonth();
+        const nextYearMonth = nextMonth.getFullYear() * 12 + nextMonth.getMonth();
+        const canGoNext = nextYearMonth <= maxYearMonth;
+        
+        nextButton.classList.toggle('disabled', !canGoNext);
+        nextButton.disabled = !canGoNext;
+    }
+
     // Set month and year
     monthYear.textContent = currentDate.toLocaleString('default', { 
         month: 'long', 
@@ -168,58 +268,73 @@ export function renderCalendar() {
     // Add days of month
     for (let day = 1; day <= lastDay.getDate(); day++) {
         const dayElement = document.createElement('div');
-        dayElement.className = 'day';
-        
         const dateString = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
         
+        // Set base class
+        dayElement.className = 'day';
+        
+        if (hasSubmitted) {
+            dayElement.classList.add('disabled');
+            dayElement.style.pointerEvents = 'none';
+        } else {
+            if (isDateInRange(dateString)) {
+                dayElement.addEventListener('click', (e) => {
+                    if (!hasSubmitted) {
+                        toggleDateSelection(dateString, dayElement);
+                    }
+                });
+            } else {
+                dayElement.classList.add('disabled');
+            }
+        }
+
         // Add date number
         const dateNumber = document.createElement('div');
         dateNumber.className = 'date-number';
         dateNumber.textContent = day;
         dayElement.appendChild(dateNumber);
 
-        // Check if this day is selected in current session
-        if (selectedDates.has(dateString)) {
+        // Show selected state if applicable
+        if (!hasSubmitted && selectedDates.has(dateString)) {
             dayElement.classList.add('selected');
         }
 
-        // Add click handler for date selection
-        dayElement.addEventListener('click', () => toggleDateSelection(dateString, dayElement));
-
-        // Show event info
-        const eventInfo = getEventInfo(dateString);
-        if (eventInfo.hasEvent) {
+        // Show event info - only once per date
+        const date = new Date(dateString);
+        const start = new Date(eventData.startDate);
+        const end = new Date(eventData.endDate);
+        
+        if (date >= start && date <= end) {
             dayElement.classList.add('has-event');
-            if (eventInfo.showTitle) {
+            // Only show title on first day of event
+            if (dateString === eventData.startDate) {
                 const eventTitle = document.createElement('div');
                 eventTitle.className = 'event-title';
                 eventTitle.textContent = eventData.title;
-                eventTitle.addEventListener('mouseover', (e) => showEventTooltip(e.target));
-                eventTitle.addEventListener('mouseout', hideEventTooltip);
                 dayElement.appendChild(eventTitle);
             }
         }
 
-        // Show all availabilities for this date
+        // Show availabilities for this date
         const availableSubmitters = allAvailabilities.filter(a => 
             a.dates.includes(dateString)
         );
 
         if (availableSubmitters.length > 0) {
-            dayElement.classList.add('has-availability');
-            
             const availabilityContainer = document.createElement('div');
             availabilityContainer.className = 'availability-names';
             
-            availableSubmitters.forEach(submitter => {
-                const nameTag = document.createElement('div');
-                nameTag.className = 'availability-name';
-                nameTag.textContent = submitter.submitterName;
-                nameTag.style.backgroundColor = submitterColors.get(submitter.submitterId);
-                // Add hover effect to show full name
-                nameTag.title = submitter.submitterName;
-                availabilityContainer.appendChild(nameTag);
-            });
+            // Sort submitters by name for consistent display
+            availableSubmitters
+                .sort((a, b) => a.submitterName.localeCompare(b.submitterName))
+                .forEach(submitter => {
+                    const nameTag = document.createElement('div');
+                    nameTag.className = 'availability-name';
+                    nameTag.textContent = submitter.submitterName;
+                    nameTag.style.backgroundColor = submitterColors.get(submitter.submitterId);
+                    nameTag.title = submitter.submitterName;
+                    availabilityContainer.appendChild(nameTag);
+                });
 
             dayElement.appendChild(availabilityContainer);
         }
@@ -273,47 +388,167 @@ function hideEventTooltip() {
     }
 }
 
-// Add date selection toggle
+// Update isDateInRange function with more logging
+function isDateInRange(dateString) {
+    console.log('Checking date range for:', dateString);
+    
+    // Parse dates consistently
+    const checkDate = new Date(dateString);
+    checkDate.setHours(0, 0, 0, 0);
+    
+    const startDate = new Date(minDate);
+    startDate.setHours(0, 0, 0, 0);
+    
+    const endDate = new Date(maxDate);
+    endDate.setHours(23, 59, 59, 999);
+    
+    const isInRange = checkDate >= startDate && checkDate <= endDate;
+    
+    console.log({
+        checkDate: checkDate.toISOString(),
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        isInRange: isInRange
+    });
+    
+    return isInRange;
+}
+
+// Update toggleDateSelection function to check hasSubmitted state first
 function toggleDateSelection(dateString, element) {
+    console.log('Attempting to toggle date:', dateString);
+    console.log('Element classes:', element.className);
+    console.log('Has submitted:', hasSubmitted);
+    
+    // Check submission state first
+    if (hasSubmitted) {
+        console.log('Selection blocked: User has already submitted');
+        return;
+    }
+    
+    if (element.classList.contains('disabled')) {
+        console.log('Blocked selection of disabled date:', dateString);
+        return;
+    }
+    
+    if (!isDateInRange(dateString)) {
+        console.log('Blocked selection of out-of-range date:', dateString);
+        return;
+    }
+
     if (selectedDates.has(dateString)) {
+        console.log('Removing date from selection:', dateString);
         selectedDates.delete(dateString);
         element.classList.remove('selected');
     } else {
+        console.log('Adding date to selection:', dateString);
         selectedDates.add(dateString);
         element.classList.add('selected');
     }
     updateSaveButton();
 }
 
-// Add save button functionality
+// Update addSaveButton function to include error handling
 function addSaveButton() {
     const container = document.createElement('div');
     container.className = 'save-selections-container';
     
-    // Add name input field
+    // Add name input container with error message
+    const inputContainer = document.createElement('div');
+    inputContainer.className = 'input-container';
+    
     const nameInput = document.createElement('input');
     nameInput.type = 'text';
     nameInput.placeholder = 'Enter your name';
     nameInput.className = 'submitter-name-input';
-    nameInput.required = true;
+    
+    const errorMessage = document.createElement('div');
+    errorMessage.className = 'error-message';
+    
+    inputContainer.appendChild(nameInput);
+    inputContainer.appendChild(errorMessage);
     
     const button = document.createElement('button');
     button.className = 'save-selections-button';
     button.textContent = 'Submit Available Dates';
     button.style.display = 'none';
-    button.addEventListener('click', () => {
+    
+    button.addEventListener('click', async (e) => {
+        e.preventDefault();
+        
+        // Clear previous error
+        clearError(nameInput);
+        
+        // Validate name
         if (!nameInput.value.trim()) {
-            alert('Please enter your name');
-            nameInput.focus();
+            showError(nameInput, 'Please enter your name');
             return;
         }
-        saveSelectedDates(nameInput.value.trim());
+        
+        // Validate date selections
+        if (selectedDates.size === 0) {
+            showError(nameInput, 'Please select at least one date');
+            return;
+        }
+        
+        await saveSelectedDates(nameInput.value.trim());
     });
     
-    container.appendChild(nameInput);
+    // Add input validation on blur
+    nameInput.addEventListener('blur', () => {
+        if (!nameInput.value.trim()) {
+            showError(nameInput, 'Please enter your name');
+        } else {
+            setValid(nameInput);
+        }
+    });
+    
+    // Clear error on input
+    nameInput.addEventListener('input', () => {
+        clearError(nameInput);
+    });
+    
+    container.appendChild(inputContainer);
     container.appendChild(button);
     document.querySelector('.calendar').appendChild(container);
     return { button, nameInput };
+}
+
+// Add validation helper functions (same as in scripts.js)
+function showError(input, message) {
+    const container = input.closest('.input-container');
+    if (!container) return;
+
+    input.classList.add('invalid');
+    input.classList.remove('valid');
+    
+    let errorElement = container.querySelector('.error-message');
+    if (!errorElement) {
+        errorElement = document.createElement('div');
+        errorElement.className = 'error-message';
+        container.appendChild(errorElement);
+    }
+    errorElement.textContent = message;
+}
+
+function clearError(input) {
+    const container = input.closest('.input-container');
+    if (!container) return;
+
+    input.classList.remove('invalid');
+    
+    const errorElement = container.querySelector('.error-message');
+    if (errorElement) {
+        errorElement.textContent = '';
+    }
+}
+
+function setValid(input) {
+    const container = input.closest('.input-container');
+    if (!container) return;
+
+    input.classList.remove('invalid');
+    input.classList.add('valid');
 }
 
 // Update save button visibility
@@ -324,7 +559,7 @@ function updateSaveButton() {
     }
 }
 
-// Update saveSelectedDates to refresh the calendar with new submission
+// Update saveSelectedDates function
 async function saveSelectedDates(submitterName) {
     try {
         if (selectedDates.size === 0) {
@@ -342,14 +577,15 @@ async function saveSelectedDates(submitterName) {
             submittedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
-        // Save to subcollection
+        // Save to subcollection (allowed by rules)
         await db.collection('events').doc(eventData.id)
             .collection('availability')
             .doc(submitterId)
             .set(availabilityData);
 
-        alert('Your availability has been saved!');
-        
+        // Store submission in localStorage
+        localStorage.setItem(`event_${eventData.id}_submitted`, 'true');
+
         // Add new submission to local state
         allAvailabilities.push({
             submitterId: submitterId,
@@ -358,11 +594,56 @@ async function saveSelectedDates(submitterName) {
             submittedAt: new Date()
         });
 
-        // Clear selections and refresh
-        selectedDates.clear();
-        document.querySelector('.submitter-name-input').value = '';
-        renderCalendar();
-        updateSaveButton();
+        // Show success modal
+        const successModal = document.getElementById('successModal');
+        if (successModal) {
+            successModal.style.display = 'block';
+            
+            const closeSuccessModal = () => {
+                successModal.style.display = 'none';
+                
+                // Set submitted state first
+                hasSubmitted = true;
+                
+                // Clear selections
+                selectedDates.clear();
+                
+                // Remove save container
+                const saveContainer = document.querySelector('.save-selections-container');
+                if (saveContainer) {
+                    saveContainer.remove();
+                }
+                
+                // Disable all day elements
+                document.querySelectorAll('.day').forEach(day => {
+                    day.classList.add('disabled');
+                    day.style.pointerEvents = 'none';
+                    day.classList.remove('selected');
+                });
+                
+                // Re-render calendar
+                renderCalendar();
+            };
+            
+            // Handle OK button click
+            const okButton = document.getElementById('successOkButton');
+            if (okButton) {
+                okButton.onclick = closeSuccessModal;
+            }
+
+            // Handle close button click
+            const closeButton = successModal.querySelector('.close-button');
+            if (closeButton) {
+                closeButton.onclick = closeSuccessModal;
+            }
+
+            // Handle click outside modal
+            window.onclick = (event) => {
+                if (event.target === successModal) {
+                    closeSuccessModal();
+                }
+            };
+        }
 
     } catch (error) {
         console.error('Error saving dates:', error);

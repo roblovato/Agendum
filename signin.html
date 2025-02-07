@@ -22,20 +22,22 @@
         } from './scripts/components.js';
 
         const signinForm = `
-            <form class="signin-form" id="signinForm">
+            <form class="modal-form" onsubmit="handleSignIn(event)">
                 <div class="form-group">
-                    <label for="email">Email Address</label>
+                    <label for="email">Email</label>
                     <div class="input-container">
                         <input type="email" id="email" name="email" required>
+                        <div class="error-message"></div>
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="password">Password</label>
                     <div class="input-container">
                         <input type="password" id="password" name="password" required>
+                        <div class="error-message"></div>
                     </div>
                 </div>
-                <button type="submit" class="button signup signin-button">Sign In</button>
+                <button type="submit" class="button primary signup-button">Sign In</button>
             </form>
         `;
 
@@ -54,30 +56,40 @@
             ${createAuthContainer('Sign In', signinForm, linkText)}
         `;
 
-        // Handle form submission
+        // Wait for Firebase to initialize
         document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('signinForm');
-            if (form) {
-                form.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const email = form.querySelector('#email').value;
-                    const password = form.querySelector('#password').value;
+            const form = document.querySelector('form');
+            const errorDisplay = document.createElement('div');
+            errorDisplay.className = 'error-message';
+            form.insertBefore(errorDisplay, form.querySelector('.form-actions'));
 
-                    try {
-                        const loading = document.querySelector('.loading-overlay');
-                        if (loading) loading.classList.add('show');
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                errorDisplay.textContent = '';
+                
+                const email = form.querySelector('input[type="email"]').value.trim();
+                const password = form.querySelector('input[type="password"]').value;
+                
+                if (!email || !password) {
+                    errorDisplay.textContent = 'Please enter both email and password.';
+                    return;
+                }
 
-                        const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
-                        console.log('Sign-in successful:', userCredential.user);
-                        window.location.href = 'dashboard.html';
-                    } catch (error) {
-                        console.error('Sign-in error:', error);
-                        alert(error.message);
-                        const loading = document.querySelector('.loading-overlay');
-                        if (loading) loading.classList.remove('show');
-                    }
-                });
-            }
+                try {
+                    const loading = document.querySelector('.loading-overlay');
+                    if (loading) loading.classList.add('show');
+
+                    // Simple sign in without additional complexity
+                    await firebase.auth().signInWithEmailAndPassword(email, password);
+                    window.location.href = 'dashboard.html';
+                } catch (error) {
+                    console.error('Sign in error:', error);
+                    errorDisplay.textContent = error.message;
+                } finally {
+                    const loading = document.querySelector('.loading-overlay');
+                    if (loading) loading.classList.remove('show');
+                }
+            });
         });
     </script>
     <script type="module" src="scripts/scripts.js"></script>

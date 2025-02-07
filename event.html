@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>View Event - Agendum</title>
+    <title>Event Details - Agendum</title>
     <link rel="stylesheet" href="styles/styles.css">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -11,47 +11,41 @@
     <script src="scripts/firebase-config.js"></script>
 </head>
 <body>
-    <div class="calendar-container">
-        <div class="calendar">
-            <div class="month-header">
-                <button class="prev-month">&lt; Previous</button>
-                <h2 id="monthYear"></h2>
-                <button class="next-month">Next &gt;</button>
-            </div>
-            
-            <!-- New separate weekday header div -->
-            <div class="weekday-headers">
-                <div class="weekday-header">Sun</div>
-                <div class="weekday-header">Mon</div>
-                <div class="weekday-header">Tue</div>
-                <div class="weekday-header">Wed</div>
-                <div class="weekday-header">Thu</div>
-                <div class="weekday-header">Fri</div>
-                <div class="weekday-header">Sat</div>
-            </div>
-
-            <div class="calendar-grid">
-                <!-- Days will be inserted here by JavaScript -->
+    <div id="app">
+        <div class="main-content">
+            <div class="calendar-container">
+                <!-- Calendar will be loaded here -->
             </div>
         </div>
     </div>
 
-    <div class="event-tooltip" id="eventTooltip">
-        <!-- Event details will be inserted here -->
+    <!-- Success Modal -->
+    <div class="modal" id="successModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Success</h2>
+                <button class="close-button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Your availability has been saved!</p>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="button primary" id="successOkButton">OK</button>
+            </div>
+        </div>
     </div>
 
     <script type="module">
         import { initializeCalendar } from './scripts/calendar.js';
-        
-        // Get event ID from URL
-        const params = new URLSearchParams(window.location.search);
-        const eventId = params.get('id');
-        
-        if (!eventId) {
-            document.body.innerHTML = '<div class="error">No event specified</div>';
-        } else {
-            initializeCalendar(eventId);
-        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // Initialize calendar
+                await initializeCalendar();
+            } catch (error) {
+                console.error('Error initializing event page:', error);
+            }
+        });
     </script>
 </body>
 </html>

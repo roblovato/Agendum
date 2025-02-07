@@ -12,9 +12,12 @@
     <script src="scripts/firebase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </head>
-<body class="dashboard-body">
+<body>
     <div id="app">
-        <!-- Components will be loaded here -->
+        <!-- Header will be inserted here -->
+        <div class="main-content">
+            <!-- Content will be loaded here -->
+        </div>
     </div>
 
     <div class="modal" id="newEventModal">
@@ -23,11 +26,12 @@
                 <h2>New Event</h2>
                 <button class="close-button">&times;</button>
             </div>
-            <form class="modal-form">
+            <form class="modal-form" novalidate>
                 <div class="form-group">
                     <label for="eventTitle">Title</label>
                     <div class="input-container">
-                        <input type="text" id="eventTitle" name="title" required>
+                        <input type="text" id="eventTitle" name="title">
+                        <div class="error-message"></div>
                     </div>
                 </div>
                 
@@ -35,41 +39,25 @@
                     <label for="eventDescription">Description</label>
                     <div class="input-container">
                         <textarea id="eventDescription" name="description" rows="3"></textarea>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="dateType">Event Duration</label>
-                    <div class="input-container">
-                        <select id="dateType" name="dateType">
-                            <option value="single">Single Day</option>
-                            <option value="multi">Date Range</option>
-                        </select>
+                        <div class="error-message"></div>
                     </div>
                 </div>
                 
                 <div class="date-picker-container">
-                    <!-- Single date view -->
-                    <div class="form-group" id="singleDateGroup">
-                        <label for="eventDate">Date</label>
-                        <div class="input-container">
-                            <input type="text" id="eventDate" name="date" required>
-                        </div>
-                    </div>
-
-                    <!-- Date range view -->
-                    <div class="form-group" id="dateRangeGroup">
+                    <div class="form-group">
                         <div class="date-range-wrapper">
                             <div class="date-input-group">
                                 <label for="startDate">Start Date</label>
                                 <div class="input-container">
-                                    <input type="text" id="startDate" name="startDate">
+                                    <input type="text" id="startDate" name="startDate" class="flatpickr-input" required>
+                                    <div class="error-message"></div>
                                 </div>
                             </div>
                             <div class="date-input-group">
                                 <label for="endDate">End Date</label>
                                 <div class="input-container">
-                                    <input type="text" id="endDate" name="endDate">
+                                    <input type="text" id="endDate" name="endDate" class="flatpickr-input" required>
+                                    <div class="error-message"></div>
                                 </div>
                             </div>
                         </div>
@@ -79,19 +67,19 @@
                 <div class="form-group">
                     <label for="eventLocation">Location</label>
                     <div class="input-container">
-                        <input type="text" id="eventLocation" name="location">
+                        <input type="text" id="eventLocation" name="location" required>
+                        <div class="error-message"></div>
                     </div>
                 </div>
                 
-                <div class="form-group">
+                <!--<div class="form-group">
                     <label for="invitees">Invitees</label>
                     <div class="input-container invitees-container">
                         <div class="invitees-list" id="inviteesList">
-                            <!-- Will be populated dynamically -->
                             <div class="loading-spinner">Loading contacts...</div>
                         </div>
                     </div>
-                </div>
+                </div> -->
                 
                 <div class="form-actions">
                     <button type="submit" class="button primary">Create Event</button>
@@ -184,15 +172,28 @@
         </div>
     </div>
 
+    <div class="modal" id="successModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Success</h2>
+                <button class="close-button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Your availability has been saved!</p>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="button primary" id="successOkButton">OK</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import { 
             createHeader, 
-            createSidebar, 
             createUserNav, 
             createLoadingOverlay
         } from './scripts/components.js';
 
-        // Import necessary functions from scripts.js
         import { 
             loadAndDisplayEvents, 
             loadAndDisplayContacts, 
@@ -218,189 +219,48 @@
             const mainContent = document.querySelector('.main-content');
             if (!mainContent) return;
 
+            // Show loading state
+            showLoading();
+
             try {
-                // Wait for Firebase Auth to initialize
-                await new Promise((resolve) => {
-                    const unsubscribe = firebase.auth().onAuthStateChanged((user) => {
-                        unsubscribe();
-                        if (user) {
-                            resolve(user);
-                        } else {
-                            window.location.href = 'signin.html';
-                        }
-                    });
-                });
+                // Clear existing content
+                mainContent.innerHTML = '';
 
-                // Update title based on view
-                document.title = `${view.charAt(0).toUpperCase() + view.slice(1)} - Agendum`;
-                
-                // Update content based on view
-                mainContent.innerHTML = `
-                    ${createHeader(view === 'events' ? 'Your Events' : 'Your Contacts')}
-                    <div class="events-table ${view === 'contacts' ? 'contacts-table' : ''}">
-                        <table>
-                            <thead>
-                                <tr>
-                                    ${view === 'events' ? `
-                                        <th>Title</th>
-                                        <th>Date</th>
-                                        <th>Location</th>
-                                        <th>Invitees</th>
-                                    ` : `
-                                        <th>Name</th>
-                                        <th>Email</th>
-                                        <th>Phone</th>
-                                    `}
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Dynamic content will be loaded here -->
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-
-                // Load appropriate data
-                if (view === 'events') {
-                    // Lazy load Flatpickr only when needed
-                    if (!window.flatpickr) {
-                        const link = document.createElement('link');
-                        link.rel = 'stylesheet';
-                        link.href = 'https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css';
-                        document.head.appendChild(link);
-
-                        await new Promise((resolve) => {
-                            const script = document.createElement('script');
-                            script.src = 'https://cdn.jsdelivr.net/npm/flatpickr';
-                            script.onload = () => {
-                                // Initialize Flatpickr after it's loaded
-                                window.flatpickr = flatpickr;
-                                resolve();
-                            };
-                            document.head.appendChild(script);
-                        });
-                    }
-                    await loadAndDisplayEvents();
-                } else {
+                // Load appropriate view content
+                if (view === 'contacts') {
                     await loadAndDisplayContacts();
-                }
-
-                // Update the primary button text
-                const primaryButton = document.querySelector('.nav-button.primary');
-                if (primaryButton) {
-                    primaryButton.innerHTML = `
-                        <span class="icon">+</span>
-                        New ${view === 'contacts' ? 'Contact' : 'Event'}
-                    `;
+                } else {
+                    await loadAndDisplayEvents();
                 }
             } catch (error) {
                 console.error('Error rendering view:', error);
-                if (error.message === 'User not authenticated') {
-                    window.location.href = 'signin.html';
-                }
+                mainContent.innerHTML = '<div class="error">Error loading content</div>';
+            } finally {
+                hideLoading();
             }
         }
 
-        // Initialize the app
-        document.getElementById('app').innerHTML = `
-            ${createLoadingOverlay()}
-            ${createSidebar(getCurrentView())}
-            ${createUserNav()}
-            <main class="main-content">
-                <!-- Content will be loaded here -->
-            </main>
-        `;
+        // Initialize the dashboard
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const app = document.querySelector('#app');
+                const mainContent = document.querySelector('.main-content');
 
-        // Update the navigation handler
-        document.addEventListener('click', async (e) => {
-            const navButton = e.target.closest('.nav-button');
-            if (!navButton) return;
-
-            // Handle primary (New) button
-            if (navButton.classList.contains('primary')) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                // Get current view from URL and close any open modals first
-                const params = new URLSearchParams(window.location.search);
-                const currentView = params.get('view') || 'events';
-                
-                // Close all modals first
-                document.querySelectorAll('.modal').forEach(modal => {
-                    modal.style.display = 'none';
-                });
-                
-                // Determine which modal to show
-                if (currentView === 'contacts') {
-                    const contactModal = document.getElementById('newContactModal');
-                    if (contactModal) {
-                        // Reset contact form
-                        const form = contactModal.querySelector('form');
-                        if (form) {
-                            form.reset();
-                            const hiddenInputs = form.querySelectorAll('input[type="hidden"]');
-                            hiddenInputs.forEach(input => input.value = '');
-                        }
-                        
-                        // Reset modal title and button
-                        const modalTitle = contactModal.querySelector('#contactModalTitle');
-                        const submitBtn = contactModal.querySelector('#contactSubmitBtn');
-                        if (modalTitle) modalTitle.textContent = 'Add New Contact';
-                        if (submitBtn) submitBtn.textContent = 'Add Contact';
-                        
-                        contactModal.style.display = 'block';
-                    }
-                    return;
+                // Create and append header
+                const header = createHeader();
+                if (mainContent) {
+                    app.insertBefore(header, mainContent);
                 }
-                
-                // Handle event modal
-                if (currentView === 'events') {
-                    const eventModal = document.getElementById('newEventModal');
-                    if (eventModal) {
-                        // Reset event form
-                        const form = eventModal.querySelector('form');
-                        if (form) {
-                            form.reset();
-                        }
 
-                        // Show modal
-                        eventModal.style.display = 'block';
+                // Create and append loading overlay
+                const loadingOverlay = createLoadingOverlay();
+                document.body.appendChild(loadingOverlay);
 
-                        // Initialize features with a small delay to ensure DOM is ready
-                        setTimeout(() => {
-                            try {
-                                initializeDateTypeHandler();
-                                loadInviteesList();
-                            } catch (error) {
-                                console.error('Error initializing event features:', error);
-                            }
-                        }, 100);
-                    }
-                    return;
-                }
-            }
+                // Load events view directly
+                await renderView('events');
 
-            // Handle navigation buttons
-            if (navButton) {
-                e.preventDefault();
-                const view = navButton.getAttribute('data-view') || 'events';
-                updateURL(view);
-                renderView(view);
-                
-                // Update sidebar active state
-                document.querySelectorAll('.nav-button').forEach(btn => {
-                    btn.classList.toggle('active', btn.getAttribute('data-view') === view);
-                });
-
-                // Update the primary button text
-                const primaryButton = document.querySelector('.nav-button.primary');
-                if (primaryButton) {
-                    primaryButton.innerHTML = `
-                        <span class="icon">+</span>
-                        New ${view === 'contacts' ? 'Contact' : 'Event'}
-                    `;
-                }
+            } catch (error) {
+                console.error('Error initializing dashboard:', error);
             }
         });
 
@@ -408,9 +268,6 @@
         window.addEventListener('popstate', () => {
             renderView(getCurrentView());
         });
-
-        // Initial render
-        renderView(getCurrentView());
     </script>
     <script type="module" src="scripts/scripts.js"></script>
 </body>

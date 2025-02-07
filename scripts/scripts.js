@@ -160,43 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
         initializeFormValidation();
         
         // Set up auth state observer
-        firebase.auth().onAuthStateChanged(async (user) => {
-            if (user) {
-                try {
-                    const userDoc = await db.collection('users').doc(user.uid).get();
-                    const userData = userDoc.data();
-                    console.log('🟢 User is signed in:', {
-                        name: userData?.name || 'No name found',
-                        email: user.email,
-                        uid: user.uid
-                    });
-                    
-                    // Initialize user-specific functionality
-                    if (window.location.pathname.includes('dashboard.html')) {
-                        initializeDashboard();
-                    } else if (window.location.pathname.includes('contacts.html')) {
-                        loadAndDisplayContacts();
-                    }
-                    
-                    // Initialize calendar if we're on the event page
-                    if (document.querySelector('.calendar-grid')) {
-                        renderCalendar();
-                    }
-                } catch (error) {
-                    console.log('🟢 User is signed in (no Firestore data):', {
-                        email: user.email,
-                        uid: user.uid
-                    });
-                }
-            } else {
-                console.log('🔴 User is signed out');
-                // User is not signed in, redirect to sign in page
-                if (!window.location.pathname.includes('signin.html') && 
-                    !window.location.pathname.includes('index.html')) {
-                    window.location.href = 'signin.html';
-                }
-            }
-        });
+        initializeAuth();
 
         // Initialize signin form if present
         const signinForm = document.querySelector('.signin-form');
@@ -258,33 +222,104 @@ function handleSignedOutUser() {
     document.body.classList.remove('authenticated');
 }
 
+// Initialize Firebase Auth state for all pages
 function initializeAuth() {
-    // Check authentication state
-    firebase.auth().onAuthStateChanged(async (user) => {
-        if (user) {
-            // User is signed in
-            try {
-                const userDoc = await db.collection('users').doc(user.uid).get();
-                const userData = userDoc.data();
-                console.log('🟢 User is signed in:', {
-                    name: userData?.name || 'No name found',
-                    email: user.email,
-                    uid: user.uid
-                });
-                handleAuthenticatedUser(user);
-            } catch (error) {
-                console.log('🟢 User is signed in (no Firestore data):', {
-                    email: user.email,
-                    uid: user.uid
-                });
+    firebase.auth().onAuthStateChanged((user) => {
+        try {
+            if (user) {
+                // User is signed in
+                console.log('🟢 User is signed in:', user.email);
+
+                // Handle page-specific initialization
+                const currentPath = window.location.pathname;
+                if (currentPath.includes('signin.html') || currentPath === '/' || currentPath.endsWith('index.html')) {
+                    window.location.href = 'dashboard.html';
+                } else if (currentPath.includes('dashboard.html')) {
+                    initializeDashboard(user);
+                }
+            } else {
+                // User is signed out
+                console.log('🔴 User is signed out');
+                if (!window.location.pathname.includes('signin.html') && 
+                    !window.location.pathname.includes('index.html')) {
+                    window.location.href = 'signin.html';
+                }
             }
-        } else {
-            // User is signed out
-            console.log('🔴 User is signed out');
-            handleSignedOutUser();
+        } catch (error) {
+            console.error('Error in auth state change:', error);
+            const mainContent = document.querySelector('.main-content');
+            if (mainContent) {
+                mainContent.innerHTML = `
+                    <div class="error-message" style="text-align: center; padding: 2rem;">
+                        <h3>Error Loading Content</h3>
+                        <p>${error.message}</p>
+                        <button onclick="window.location.reload()" class="button primary" style="margin-top: 1rem;">
+                            Retry
+                        </button>
+                    </div>
+                `;
+            }
         }
     });
 }
+
+// Initialize dashboard with user data
+async function initializeDashboard(user) {
+    try {
+        // Show loading state
+        showLoading('Loading dashboard...');
+
+        // Initialize components
+        initializeModal();
+        initializeFormValidation();
+        
+        // Update user info in the nav
+        const userNameElement = document.querySelector('.user-name');
+        if (userNameElement) {
+            userNameElement.textContent = user.email;
+        }
+
+        // Add logout handler
+        const logoutButton = document.querySelector('.logout-button');
+        if (logoutButton) {
+            logoutButton.addEventListener('click', () => {
+                firebase.auth().signOut()
+                    .then(() => {
+                        window.location.href = 'signin.html';
+                    })
+                    .catch((error) => {
+                        console.error('Error signing out:', error);
+                        alert('Error signing out. Please try again.');
+                    });
+            });
+        }
+
+        // Load events
+        await loadAndDisplayEvents();
+
+    } catch (error) {
+        console.error('Error initializing dashboard:', error);
+        const mainContent = document.querySelector('.main-content');
+        if (mainContent) {
+            mainContent.innerHTML = `
+                <div class="error-message" style="text-align: center; padding: 2rem;">
+                    <h3>Error Loading Dashboard</h3>
+                    <p>${error.message}</p>
+                    <button onclick="window.location.reload()" class="button primary" style="margin-top: 1rem;">
+                        Retry
+                    </button>
+                </div>
+            `;
+        }
+    } finally {
+        hideLoading();
+    }
+}
+
+// Initialize when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+    initializeAuth();
+});
 
 // Make auth functions available globally
 window.handleAuthenticatedUser = handleAuthenticatedUser;
@@ -529,54 +564,94 @@ function formatPhoneNumber(input) {
     return phoneNumber;
 }
 
-// Update initializeModal function
+// Update initializeModal function to properly clear all form state
 function initializeModal() {
-    // Handle modal close buttons
-    document.querySelectorAll('.close-button, .button.secondary').forEach(button => {
-        button.addEventListener('click', () => {
-            const modal = button.closest('.modal');
-            if (modal) {
-                modal.style.display = 'none';
-                const form = modal.querySelector('form');
-                if (form) form.reset();
-            }
-        });
-    });
+    const modal = document.getElementById('newEventModal');
+    if (!modal) return;
 
-    // Handle form submissions
-    document.querySelectorAll('.modal form').forEach(form => {
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const submitButton = form.querySelector('button[type="submit"]');
-            if (submitButton) submitButton.disabled = true;
+    const form = modal.querySelector('form');
+    const closeButton = modal.querySelector('.close-button');
+    const cancelButton = modal.querySelector('.button.secondary');
+    const newEventButton = document.querySelector('.new-event-button');
+
+    function resetForm() {
+        if (!form) return;
+
+        // Reset the form first
+        form.reset();
+
+        // Clear all validation states and error messages
+        const inputs = form.querySelectorAll('input, textarea');
+        inputs.forEach(input => {
+            // Remove validation classes
+            input.classList.remove('invalid', 'valid');
             
-            try {
-                showLoading('Saving...');
-                
-                // Determine which form is being submitted
-                if (form.id === 'contactForm') {
-                    const formData = new FormData(form);
-                    const contactData = {
-                        name: formData.get('name'),
-                        email: formData.get('email'),
-                        phone: formData.get('phone')
-                    };
-                    await addNewContact(contactData);
-                } else {
-                    // Handle event form
-                    await saveEvent(form);
+            // Clear error messages
+            const container = input.closest('.input-container');
+            if (container) {
+                const errorMessage = container.querySelector('.error-message');
+                if (errorMessage) {
+                    errorMessage.textContent = '';
                 }
-                
-            } catch (error) {
-                console.error('Error saving item:', error);
-                alert(error.message || 'Error saving item. Please try again.');
-                if (submitButton) submitButton.disabled = false;
-            } finally {
-                hideLoading();
+
+                // Clear flatpickr visible input if this is a date field
+                if (input.id === 'startDate' || input.id === 'endDate') {
+                    const flatpickrInput = container.querySelector('.flatpickr-input');
+                    if (flatpickrInput) {
+                        flatpickrInput.classList.remove('invalid', 'valid');
+                        flatpickrInput.value = '';
+                    }
+                }
+            }
+
+            // Reset flatpickr instance if exists
+            if (input._flatpickr) {
+                input._flatpickr.clear();
             }
         });
-    });
+
+        // Also clear any standalone error messages that might exist
+        const allErrorMessages = form.querySelectorAll('.error-message');
+        allErrorMessages.forEach(error => {
+            error.textContent = '';
+        });
+    }
+
+    function closeModal() {
+        resetForm();
+        modal.style.display = 'none';
+    }
+
+    // Close button handler
+    if (closeButton) {
+        closeButton.onclick = closeModal;
+    }
+
+    // Cancel button handler
+    if (cancelButton) {
+        cancelButton.onclick = closeModal;
+    }
+
+    // Click outside modal handler
+    window.onclick = (event) => {
+        if (event.target === modal) {
+            closeModal();
+        }
+    };
+
+    // New Event button handler
+    if (newEventButton) {
+        newEventButton.onclick = () => {
+            resetForm();
+            modal.style.display = 'block';
+        };
+    }
 }
+
+// Make sure to call initializeModal when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+    initializeModal();
+});
 
 // Update addNewContact function
 async function addNewContact(contactData) {
@@ -888,9 +963,108 @@ async function addNewEvent(eventData) {
     }
 }
 
+// Update initializeFormValidation to handle form submission correctly
 function initializeFormValidation() {
-    // Add form validation event listeners if needed
-    console.log('Form validation initialized');
+    const form = document.querySelector('#newEventModal form');
+    if (!form) return;
+
+    // Remove any existing event listeners
+    const newForm = form.cloneNode(true);
+    form.parentNode.replaceChild(newForm, form);
+
+    // Initialize flatpickr date pickers
+    if (typeof flatpickr !== 'undefined') {
+        const startDatePicker = flatpickr("#startDate", {
+            enableTime: false,
+            dateFormat: "Y-m-d",
+            minDate: "today",
+            onChange: function(selectedDates, dateStr) {
+                const endDateInput = document.querySelector('#endDate');
+                if (endDateInput._flatpickr) {
+                    endDateInput._flatpickr.set('minDate', dateStr);
+                }
+                validateField(document.querySelector('#startDate'));
+            }
+        });
+
+        const endDatePicker = flatpickr("#endDate", {
+            enableTime: false,
+            dateFormat: "Y-m-d",
+            minDate: "today",
+            onChange: function(selectedDates, dateStr) {
+                validateField(document.querySelector('#endDate'));
+            }
+        });
+    }
+
+    // Add single form submission handler
+    newForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        // Validate all fields
+        const title = newForm.querySelector('#eventTitle');
+        const startDate = newForm.querySelector('#startDate');
+        const endDate = newForm.querySelector('#endDate');
+        const location = newForm.querySelector('#eventLocation');
+        
+        let isValid = true;
+        
+        [title, startDate, endDate, location].forEach(input => {
+            if (!validateField(input)) {
+                isValid = false;
+            }
+        });
+        
+        if (!isValid) return;
+        
+        try {
+            // Check if this is an edit or new event
+            const eventId = newForm.dataset.eventId;
+            if (eventId) {
+                // Update existing event
+                await updateEvent(eventId, newForm);
+            } else {
+                // Create new event
+                await saveEvent(newForm);
+            }
+
+            // Close modal and refresh events
+            const modal = document.getElementById('newEventModal');
+            if (modal) {
+                modal.style.display = 'none';
+                newForm.reset();
+                if (typeof flatpickr !== 'undefined') {
+                    const startDateInput = document.querySelector('#startDate');
+                    const endDateInput = document.querySelector('#endDate');
+                    if (startDateInput._flatpickr) startDateInput._flatpickr.clear();
+                    if (endDateInput._flatpickr) endDateInput._flatpickr.clear();
+                }
+            }
+            await loadAndDisplayEvents();
+        } catch (error) {
+            console.error('Error saving event:', error);
+            showError(title, 'Error saving event. Please try again.');
+        }
+    });
+}
+
+// Add updateEvent function
+async function updateEvent(eventId, form) {
+    const user = firebase.auth().currentUser;
+    if (!user) throw new Error('User not authenticated');
+
+    const formData = new FormData(form);
+    
+    const eventData = {
+        title: formData.get('title').trim(),
+        description: formData.get('description')?.trim() || '',
+        location: formData.get('location').trim(),
+        startDate: formData.get('startDate'),
+        endDate: formData.get('endDate'),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    await db.collection('events').doc(eventId).update(eventData);
 }
 
 // Add loading state functions
@@ -1257,121 +1431,118 @@ async function loadInviteesList() {
     }
 }
 
-// Add function to load and display events
+// Update loadAndDisplayEvents function to handle auth state better
 async function loadAndDisplayEvents() {
+    const mainContent = document.querySelector('.main-content');
+    if (!mainContent) return;
+
     try {
-        const user = firebase.auth().currentUser;
-        if (!user) {
-            console.log('Waiting for authentication...');
-            return;
-        }
-
-        const eventsTable = document.querySelector('.events-table tbody');
-        if (!eventsTable) return;
-
+        // Show loading state
         showLoading('Loading events...');
 
-        // Simplified query that doesn't require an index
-        const snapshot = await db.collection('events')
+        // Wait for auth state to be ready
+        let user = firebase.auth().currentUser;
+        if (!user) {
+            // Wait briefly and check again (auth might still be initializing)
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            user = firebase.auth().currentUser;
+            if (!user) {
+                throw new Error('User not authenticated');
+            }
+        }
+
+        // Use createdAt for sorting instead of startDate
+        const eventsSnapshot = await db.collection('events')
             .where('createdBy.userId', '==', user.uid)
+            .orderBy('createdAt', 'desc')
             .get();
 
-        // Clear existing table content
-        eventsTable.innerHTML = '';
+        // Clear main content before adding new content
+        mainContent.innerHTML = '';
 
-        if (snapshot.empty) {
-            // Show empty state
-            eventsTable.innerHTML = `
+        // Create table container for scrolling
+        const tableContainer = document.createElement('div');
+        tableContainer.className = 'events-table-container';
+
+        const table = document.createElement('table');
+        table.className = 'events-table';
+
+        // Add table header
+        const thead = document.createElement('thead');
+        thead.innerHTML = `
+            <tr>
+                <th>Title</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Location</th>
+                <th>Actions</th>
+            </tr>
+        `;
+        table.appendChild(thead);
+
+        // Add table body
+        const tbody = document.createElement('tbody');
+
+        if (eventsSnapshot.empty) {
+            tbody.innerHTML = `
                 <tr>
-                    <td colspan="5" class="empty-state">
-                        <p>You haven't created any events yet.</p>
-                        <button class="button primary add-new-event">
-                            <span class="icon">+</span>
-                            Create New Event
-                        </button>
-                    </td>
+                    <td colspan="5" class="no-events">No events found</td>
                 </tr>
             `;
-
-            // Add click handler for the "Create New Event" button
-            const addButton = eventsTable.querySelector('.add-new-event');
-            if (addButton) {
-                addButton.addEventListener('click', () => {
-                    const modal = document.getElementById('newEventModal');
-                    if (modal) {
-                        modal.style.display = 'block';
-                        initializeDateTypeHandler();
-                        loadInviteesList();
-                    }
-                });
-            }
         } else {
-            // Sort events by createdAt client-side
-            const events = [];
-            snapshot.forEach(doc => {
-                events.push({ id: doc.id, ...doc.data() });
-            });
-            
-            // Sort events by createdAt in descending order
-            events.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
-
-            // Add sorted events to table
-            events.forEach(event => {
-                const row = document.createElement('tr');
-                
-                // Format date display
-                let dateDisplay = '';
-                if (event.dateType === 'single') {
-                    dateDisplay = formatDate(event.date);
-                } else {
-                    dateDisplay = `${formatDate(event.startDate)} - ${formatDate(event.endDate)}`;
-                }
-
-                // Format invitees count
-                const inviteesCount = event.invitees?.length || 0;
-                const inviteesText = inviteesCount === 1 ? '1 person' : `${inviteesCount} people`;
-
-                row.innerHTML = `
-                    <td>${event.title || ''}</td>
-                    <td>${dateDisplay}</td>
-                    <td>${event.location || '-'}</td>
-                    <td>${inviteesText}</td>
-                    <td>
-                        <div class="table-actions">
-                            <button class="action-button view" data-id="${event.id}">View</button>
-                            <button class="action-button edit" data-id="${event.id}">Edit</button>
-                            <button class="action-button delete" data-id="${event.id}">Delete</button>
-                        </div>
+            eventsSnapshot.forEach(doc => {
+                const event = doc.data();
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${event.title}</td>
+                    <td>${formatDate(event.startDate)}</td>
+                    <td>${formatDate(event.endDate)}</td>
+                    <td>${event.location}</td>
+                    <td class="actions-cell">
+                        <button class="button view-button" data-id="${doc.id}">View</button>
+                        <button class="button edit-button" data-id="${doc.id}">Edit</button>
+                        <button class="button delete-button" data-id="${doc.id}">Delete</button>
                     </td>
                 `;
-                eventsTable.appendChild(row);
-
-                // Add event listeners for action buttons
-                const viewButton = row.querySelector('.view');
-                const editButton = row.querySelector('.edit');
-                const deleteButton = row.querySelector('.delete');
-
-                if (viewButton) {
-                    viewButton.addEventListener('click', () => handleViewEvent(event.id));
-                }
-                if (editButton) {
-                    editButton.addEventListener('click', () => handleEditEvent(event.id));
-                }
-                if (deleteButton) {
-                    deleteButton.addEventListener('click', () => handleDeleteEvent(event.id));
-                }
+                tbody.appendChild(tr);
             });
         }
 
-        hideLoading();
+        table.appendChild(tbody);
+        tableContainer.appendChild(table);
+        mainContent.appendChild(tableContainer);
+
+        // Add event listeners for buttons
+        document.querySelectorAll('.view-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const eventId = button.getAttribute('data-id');
+                window.open(`event.html?id=${eventId}`, '_blank');
+            });
+        });
+
+        document.querySelectorAll('.edit-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const eventId = button.getAttribute('data-id');
+                editEvent(eventId);
+            });
+        });
+
+        document.querySelectorAll('.delete-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const eventId = button.getAttribute('data-id');
+                confirmDeleteEvent(eventId);
+            });
+        });
+
     } catch (error) {
         console.error('Error loading events:', error);
+        mainContent.innerHTML = `
+            <div class="error-message">
+                Error loading events: ${error.message}
+            </div>
+        `;
+    } finally {
         hideLoading();
-        if (error.message === 'User not authenticated') {
-            console.log('Please sign in to view events');
-            return;
-        }
-        alert('Error loading events. Please try again.');
     }
 }
 
@@ -1386,56 +1557,62 @@ function formatDate(dateString) {
     });
 }
 
-// Add this new function to initialize the dashboard
-function initializeDashboard() {
-    // Initialize modal functionality
-    initializeModal();
-    
-    // Load and display events
-    loadAndDisplayEvents();
-    
-    // Update user info in the nav
-    const userNameElement = document.querySelector('.user-name');
-    if (userNameElement) {
-        const user = firebase.auth().currentUser;
-        userNameElement.textContent = user.email;
-    }
-
-    // Add logout handler
-    const logoutButton = document.querySelector('.logout-button');
-    if (logoutButton) {
-        logoutButton.addEventListener('click', () => {
-            firebase.auth().signOut()
-                .then(() => {
-                    window.location.href = 'signin.html';
-                })
-                .catch((error) => {
-                    console.error('Error signing out:', error);
-                });
-        });
-    }
-}
-
-// Update the saveEvent function
+// Update the saveEvent function to use inline errors
 async function saveEvent(form) {
     try {
         const user = firebase.auth().currentUser;
-        if (!user) throw new Error('User not authenticated');
+        if (!user) {
+            showError(form.querySelector('#eventTitle'), 'User not authenticated');
+            return;
+        }
 
         // Get form data
         const formData = new FormData(form);
-        const dateType = formData.get('dateType');
         
-        // Validate required fields
-        const title = formData.get('title')?.trim();
-        if (!title) throw new Error('Title is required');
+        // Get and validate fields
+        const title = form.querySelector('#eventTitle');
+        const startDate = form.querySelector('#startDate');
+        const endDate = form.querySelector('#endDate');
+        const location = form.querySelector('#eventLocation');
+
+        // Clear any existing errors
+        [title, startDate, endDate, location].forEach(clearError);
+
+        // Validate all fields
+        let isValid = true;
+
+        if (!title.value.trim()) {
+            showError(title, 'Title is required');
+            isValid = false;
+        }
+
+        if (!startDate.value) {
+            showError(startDate, 'Start date is required');
+            isValid = false;
+        }
+
+        if (!endDate.value) {
+            showError(endDate, 'End date is required');
+            isValid = false;
+        } else if (new Date(endDate.value) < new Date(startDate.value)) {
+            showError(endDate, 'End date must be after start date');
+            isValid = false;
+        }
+
+        if (!location.value.trim()) {
+            showError(location, 'Location is required');
+            isValid = false;
+        }
+
+        if (!isValid) return;
 
         // Create event object
         const eventData = {
-            title: title,
+            title: title.value.trim(),
             description: formData.get('description')?.trim() || '',
-            location: formData.get('location')?.trim() || '',
-            dateType: dateType,
+            location: location.value.trim(),
+            startDate: startDate.value,
+            endDate: endDate.value,
             createdBy: {
                 userId: user.uid,
                 email: user.email
@@ -1443,23 +1620,6 @@ async function saveEvent(form) {
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
-
-        // Add date fields based on date type
-        if (dateType === 'single') {
-            eventData.date = formData.get('date');
-            if (!eventData.date) throw new Error('Date is required');
-        } else {
-            eventData.startDate = formData.get('startDate');
-            eventData.endDate = formData.get('endDate');
-            if (!eventData.startDate || !eventData.endDate) {
-                throw new Error('Start and end dates are required');
-            }
-        }
-
-        // Get selected invitees
-        const invitees = Array.from(form.querySelectorAll('input[name="invitees"]:checked'))
-            .map(checkbox => checkbox.value);
-        eventData.invitees = invitees;
 
         // Save to Firestore
         const docRef = await db.collection('events').add(eventData);
@@ -1472,6 +1632,160 @@ async function saveEvent(form) {
 
     } catch (error) {
         console.error('Error saving event:', error);
-        alert(error.message || 'Error saving event. Please try again.');
+        showError(form.querySelector('#eventTitle'), error.message || 'Error saving event. Please try again.');
+    }
+}
+
+// Add validation helper functions
+function showError(input, message) {
+    const container = input.closest('.input-container');
+    if (!container) return;
+
+    // Add invalid class to the original input
+    input.classList.add('invalid');
+    input.classList.remove('valid');
+    
+    // For flatpickr inputs, find and update the visible input
+    if (input.id === 'startDate' || input.id === 'endDate') {
+        const visibleInput = container.querySelector('input[type="text"].form-control');
+        if (visibleInput) {
+            visibleInput.classList.add('invalid');
+            visibleInput.classList.remove('valid');
+        }
+    }
+    
+    let errorElement = container.querySelector('.error-message');
+    if (!errorElement) {
+        errorElement = document.createElement('div');
+        errorElement.className = 'error-message';
+        container.appendChild(errorElement);
+    }
+    errorElement.textContent = message;
+}
+
+function clearError(input) {
+    const container = input.closest('.input-container');
+    if (!container) return;
+
+    input.classList.remove('invalid');
+    
+    // For flatpickr inputs, find and update the visible input
+    if (input.id === 'startDate' || input.id === 'endDate') {
+        const visibleInput = container.querySelector('input[type="text"].form-control');
+        if (visibleInput) {
+            visibleInput.classList.remove('invalid');
+        }
+    }
+    
+    const errorElement = container.querySelector('.error-message');
+    if (errorElement) {
+        errorElement.textContent = '';
+    }
+}
+
+function setValid(input) {
+    const container = input.closest('.input-container');
+    if (!container) return;
+
+    input.classList.remove('invalid');
+    input.classList.add('valid');
+    
+    // For flatpickr inputs, find and update the visible input
+    if (input.id === 'startDate' || input.id === 'endDate') {
+        const visibleInput = container.querySelector('input[type="text"].form-control');
+        if (visibleInput) {
+            visibleInput.classList.remove('invalid');
+            visibleInput.classList.add('valid');
+        }
+    }
+}
+
+// Add field validation functions
+function validateField(input) {
+    switch (input.id) {
+        case 'eventTitle':
+            if (!input.value.trim()) {
+                showError(input, 'Title is required');
+                return false;
+            }
+            setValid(input);
+            return true;
+
+        case 'eventLocation':
+            if (!input.value.trim()) {
+                showError(input, 'Location is required');
+                return false;
+            }
+            setValid(input);
+            return true;
+
+        case 'startDate':
+            if (!input.value) {
+                showError(input, 'Start date is required');
+                return false;
+            }
+            setValid(input);
+            return true;
+
+        case 'endDate':
+            if (!input.value) {
+                showError(input, 'End date is required');
+                return false;
+            }
+            const startDate = document.querySelector('#startDate');
+            if (startDate && new Date(input.value) < new Date(startDate.value)) {
+                showError(input, 'End date must be after start date');
+                return false;
+            }
+            setValid(input);
+            return true;
+
+        default:
+            return true;
+    }
+}
+
+// Add helper functions for edit and delete
+async function editEvent(eventId) {
+    // Load event data
+    const eventDoc = await db.collection('events').doc(eventId).get();
+    if (!eventDoc.exists) {
+        alert('Event not found');
+        return;
+    }
+
+    const event = eventDoc.data();
+    
+    // Populate modal with event data
+    const modal = document.getElementById('newEventModal');
+    const form = modal.querySelector('form');
+    
+    form.querySelector('#eventTitle').value = event.title;
+    form.querySelector('#eventDescription').value = event.description || '';
+    form.querySelector('#startDate').value = event.startDate;
+    form.querySelector('#endDate').value = event.endDate;
+    form.querySelector('#eventLocation').value = event.location;
+
+    // Update modal title and button
+    modal.querySelector('.modal-header h2').textContent = 'Edit Event';
+    const submitButton = form.querySelector('button[type="submit"]');
+    submitButton.textContent = 'Save Changes';
+    
+    // Store event ID in form
+    form.dataset.eventId = eventId;
+    
+    // Show modal
+    modal.style.display = 'block';
+}
+
+async function confirmDeleteEvent(eventId) {
+    if (confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+        try {
+            await db.collection('events').doc(eventId).delete();
+            await loadAndDisplayEvents(); // Refresh the table
+        } catch (error) {
+            console.error('Error deleting event:', error);
+            alert('Error deleting event. Please try again.');
+        }
     }
 } 

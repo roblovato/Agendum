@@ -1,12 +1,28 @@
 {
   "rules": {
-    "events": {
-      ".read": "auth != null",
-      ".write": "auth != null"
-    },
-    "public_events": {
-      ".read": true,
-      ".write": "auth != null"
+    "firestore": {
+      "rules_version": "2",
+      "service": "cloud.firestore",
+      "match": {
+        "databases/{database}/documents": {
+          "events/{eventId}": {
+            ".read": true,
+            ".create": "request.auth != null",
+            ".update": "request.auth != null && request.auth.uid == resource.data.createdBy.userId",
+            ".delete": "request.auth != null && request.auth.uid == resource.data.createdBy.userId",
+            "availability/{submitterId}": {
+              ".read": true,
+              ".write": true
+            }
+          },
+          "contacts/{contactId}": {
+            ".read": "request.auth != null",
+            ".create": "request.auth != null",
+            ".update": "request.auth != null && request.auth.uid == resource.data.userId",
+            ".delete": "request.auth != null && request.auth.uid == resource.data.userId"
+          }
+        }
+      }
     }
   }
 } 

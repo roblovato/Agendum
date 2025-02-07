@@ -17,4 +17,13 @@ if (!firebase.apps.length) {
 const db = firebase.firestore();
 
 // Make db available globally
-window.db = db; 
+window.db = db;
+
+// Add basic error handling for network state
+window.addEventListener('online', () => {
+    console.log('Network connection restored');
+});
+
+window.addEventListener('offline', () => {
+    console.log('Network connection lost');
+}); 
