@@ -1,0 +1,14 @@
+{
+  "name": "agendum",
+  "version": "1.0.0",
+  "description": "Event scheduling and management application",
+  "scripts": {
+    "less": "lessc styles/less/main.less styles/css/main.css",
+    "less:watch": "less-watch-compiler styles/less styles/css main.less",
+    "dev": "npm run less:watch"
+  },
+  "devDependencies": {
+    "less": "^4.2.0",
+    "less-watch-compiler": "^1.16.3"
+  }
+}

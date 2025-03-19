@@ -1,0 +1,94 @@
+// Import variables and mixins
+@import 'variables';
+@import 'mixins';
+
+// Import components
+@import 'components/header';
+@import 'components/modal';
+@import 'components/forms';
+@import 'components/events';
+@import 'components/loading';
+@import 'components/auth';
+
+// Base styles
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    color: @text-color;
+    background-color: @background-color;
+    margin: 0;
+    padding: 0;
+}
+
+// Main content spacing
+.main-content {
+    margin-top: 80px;
+    padding: @spacing-large;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.flex(@justify: flex-start, @align: center, @gap: 0) {
+    display: flex;
+    justify-content: @justify;
+    align-items: @align;
+    gap: @gap;
+}
+
+.button-base() {
+    padding: @spacing-small @spacing-medium;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all @transition-duration;
+}
+
+.card() {
+    background: lighten(@background-color, 5%);
+    border-radius: 4px;
+    box-shadow: 0 2px 4px fade(@border-color, 20%);
+}
+
+.input() {
+    background: @input-bg;
+    color: @input-text;
+    border: 1px solid @input-border;
+    border-radius: 4px;
+    padding: @spacing-small;
+    transition: all @transition-duration;
+
+    &:focus {
+        border-color: @primary-color;
+        outline: none;
+        box-shadow: 0 0 0 2px fade(@primary-color, 25%);
+    }
+}
+
+.status-badge(@color) {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    color: @color;
+    background: fade(@color, 15%);
+}
+
+.responsive(@breakpoint) {
+    @media screen and (max-width: @breakpoint) {
+        @content();
+    }
+}
+
+.icon, .expand-icon {
+    width: 25px;
+    height: 25px;
+    display: block;
+}
+
+.new-event-icon {
+    font-size: 1.5rem;
+    display: inline-block;
+}

@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agendum - Your Schedule, Unified</title>
-    <link rel="stylesheet" href="styles/styles.css">
+    <title>Agendum - Event Scheduling Made Simple</title>
+    <link rel="stylesheet" href="styles/css/main.css">
 </head>
 <body>
     <div id="app">
@@ -19,7 +19,6 @@
 
         // Initialize the app
         document.getElementById('app').innerHTML = `
-            ${createLoadingOverlay()}
             <div class="container landing-container">
                 <h1 class="landing-title">Agendum</h1>
                 <p class="description">
@@ -33,6 +32,9 @@
                 </div>
             </div>
         `;
+
+        // Add loading overlay separately
+        document.body.insertAdjacentHTML('beforeend', createLoadingOverlay());
 
         // Add Firebase scripts
         document.body.insertAdjacentHTML('beforeend', createAuthScripts());

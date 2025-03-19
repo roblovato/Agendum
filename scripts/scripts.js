@@ -8,8 +8,32 @@ export {
     loadAndDisplayEvents, 
     loadAndDisplayContacts, 
     initializeDateTypeHandler, 
-    loadInviteesList 
+    loadInviteesList,
+    isMobileViewport
 };
+
+// Add this function near the top of the file with other utility functions
+function isMobileViewport() {
+    // Check if viewport width is less than 768px (common mobile breakpoint)
+    const isMobile = window.innerWidth < 768;
+    return isMobile;
+}
+
+// Call on page load
+document.addEventListener('DOMContentLoaded', () => {
+    isMobileViewport();
+    // ... rest of your initialization code ...
+
+    // Add click handler for all modal cancel buttons
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('modal-cancel')) {
+            const modal = e.target.closest('.modal');
+            if (modal) {
+                modal.classList.remove('show');
+            }
+        }
+    });
+});
 
 // Validation helper functions
 function validateEmail(input) {
@@ -227,9 +251,6 @@ function initializeAuth() {
     firebase.auth().onAuthStateChanged((user) => {
         try {
             if (user) {
-                // User is signed in
-                console.log('🟢 User is signed in:', user.email);
-
                 // Handle page-specific initialization
                 const currentPath = window.location.pathname;
                 if (currentPath.includes('signin.html') || currentPath === '/' || currentPath.endsWith('index.html')) {
@@ -542,7 +563,6 @@ function updateDateList() {
 // Add these initialization functions near the top of the file
 function initializeNavigation() {
     // Add navigation event listeners if needed
-    console.log('Navigation initialized');
 }
 
 // Add phone number formatting and validation
@@ -564,91 +584,61 @@ function formatPhoneNumber(input) {
     return phoneNumber;
 }
 
-// Update initializeModal function to properly clear all form state
+// Update initializeModal function to handle all modals generically
 function initializeModal() {
-    const modal = document.getElementById('newEventModal');
-    if (!modal) return;
+    // Get all modals
+    const modals = document.querySelectorAll('.modal');
+    
+    modals.forEach(modal => {
+        // Get close elements for this modal
+        const closeButton = modal.querySelector('.close-button');
+        const cancelButton = modal.querySelector('.button.secondary');
+        const form = modal.querySelector('form');
 
-    const form = modal.querySelector('form');
-    const closeButton = modal.querySelector('.close-button');
-    const cancelButton = modal.querySelector('.button.secondary');
-    const newEventButton = document.querySelector('.new-event-button');
-
-    function resetForm() {
-        if (!form) return;
-
-        // Reset the form first
-        form.reset();
-
-        // Clear all validation states and error messages
-        const inputs = form.querySelectorAll('input, textarea');
-        inputs.forEach(input => {
-            // Remove validation classes
-            input.classList.remove('invalid', 'valid');
-            
-            // Clear error messages
-            const container = input.closest('.input-container');
-            if (container) {
-                const errorMessage = container.querySelector('.error-message');
-                if (errorMessage) {
-                    errorMessage.textContent = '';
-                }
-
-                // Clear flatpickr visible input if this is a date field
-                if (input.id === 'startDate' || input.id === 'endDate') {
-                    const flatpickrInput = container.querySelector('.flatpickr-input');
-                    if (flatpickrInput) {
-                        flatpickrInput.classList.remove('invalid', 'valid');
-                        flatpickrInput.value = '';
+        function closeModal() {
+            // Reset form if exists
+            if (form) {
+                form.reset();
+                // Clear validation states
+                const inputs = form.querySelectorAll('input, textarea');
+                inputs.forEach(input => {
+                    input.classList.remove('invalid', 'valid');
+                    const container = input.closest('.input-container');
+                    if (container) {
+                        const errorMessage = container.querySelector('.error-message');
+                        if (errorMessage) {
+                            errorMessage.textContent = '';
+                        }
                     }
-                }
+                });
             }
-
-            // Reset flatpickr instance if exists
-            if (input._flatpickr) {
-                input._flatpickr.clear();
+            // Hide modal
+            modal.classList.remove('show');
+            if (modal.style.display) {
+                modal.style.display = 'none';
             }
-        });
-
-        // Also clear any standalone error messages that might exist
-        const allErrorMessages = form.querySelectorAll('.error-message');
-        allErrorMessages.forEach(error => {
-            error.textContent = '';
-        });
-    }
-
-    function closeModal() {
-        resetForm();
-        modal.style.display = 'none';
-    }
-
-    // Close button handler
-    if (closeButton) {
-        closeButton.onclick = closeModal;
-    }
-
-    // Cancel button handler
-    if (cancelButton) {
-        cancelButton.onclick = closeModal;
-    }
-
-    // Click outside modal handler
-    window.onclick = (event) => {
-        if (event.target === modal) {
-            closeModal();
         }
-    };
 
-    // New Event button handler
-    if (newEventButton) {
-        newEventButton.onclick = () => {
-            resetForm();
-            modal.style.display = 'block';
-        };
-    }
+        // Close button handler
+        if (closeButton) {
+            closeButton.onclick = closeModal;
+        }
+
+        // Cancel button handler
+        if (cancelButton) {
+            cancelButton.onclick = closeModal;
+        }
+
+        // Click outside modal handler
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+    });
 }
 
-// Make sure to call initializeModal when the page loads
+// Make sure to call initializeModal when the page loads and after dynamic content is added
 document.addEventListener('DOMContentLoaded', () => {
     initializeModal();
 });
@@ -899,14 +889,11 @@ async function addNewEvent(eventData) {
             description: eventData.description,
             location: eventData.location,
             dateType: eventData.dateType,
-            // Handle date based on type
             date: eventData.dateType === 'single' ? eventData.date : null,
             startDate: eventData.dateType === 'multi' ? eventData.startDate : null,
             endDate: eventData.dateType === 'multi' ? eventData.endDate : null,
-            // Get selected invitees
             invitees: Array.from(document.querySelectorAll('.invitee-checkbox:checked'))
                 .map(checkbox => checkbox.value),
-            // Add metadata
             createdBy: {
                 userId: user.uid,
                 email: user.email,
@@ -918,6 +905,7 @@ async function addNewEvent(eventData) {
         // Check if this is an update or new event
         const eventId = eventData.eventId;
         if (eventId) {
+            console.log('Updating existing event:', eventId);
             // Update existing event
             await db.collection('events').doc(eventId).update({
                 ...formattedData,
@@ -929,31 +917,27 @@ async function addNewEvent(eventData) {
                 ...formattedData,
                 lastUpdated: new Date()
             });
-
-            // After creating the event, send invites
-            if (formattedData.invitees?.length > 0) {
-                await sendEventInvites(eventId, formattedData.invitees);
-            }
+            console.log('Successfully updated both events and public_events collections');
 
             return eventId;
         } else {
+            console.log('Creating new event with data:', formattedData);
             // Create new event
             formattedData.createdAt = new Date();
             formattedData.status = 'active';
             formattedData.isPublic = true;
 
             const eventRef = await db.collection('events').add(formattedData);
+            console.log('Created event in events collection:', eventRef.id);
             
-            // Create public event
+            // Create public event with initial empty availability array
             await db.collection('public_events').doc(eventRef.id).set({
                 ...formattedData,
-                eventId: eventRef.id
+                eventId: eventRef.id,
+                availability: [], // Initialize empty availability array
+                responses: {}    // Initialize empty responses object
             });
-
-            // After creating the event, send invites
-            if (formattedData.invitees?.length > 0) {
-                await sendEventInvites(eventRef.id, formattedData.invitees);
-            }
+            console.log('Created event in public_events collection:', eventRef.id);
 
             return eventRef.id;
         }
@@ -1431,107 +1415,207 @@ async function loadInviteesList() {
     }
 }
 
-// Update loadAndDisplayEvents function to handle auth state better
+// Add this variable at the top of the file to track the currently open event
+let currentlyOpenEvent = null;
+
+// Update the loadAndDisplayEvents function to handle event expansion
 async function loadAndDisplayEvents() {
     const mainContent = document.querySelector('.main-content');
     if (!mainContent) return;
 
     try {
-        // Show loading state
         showLoading('Loading events...');
 
-        // Wait for auth state to be ready
         let user = firebase.auth().currentUser;
         if (!user) {
-            // Wait briefly and check again (auth might still be initializing)
             await new Promise(resolve => setTimeout(resolve, 1000));
             user = firebase.auth().currentUser;
-            if (!user) {
-                throw new Error('User not authenticated');
-            }
+            if (!user) throw new Error('User not authenticated');
         }
 
-        // Use createdAt for sorting instead of startDate
         const eventsSnapshot = await db.collection('events')
             .where('createdBy.userId', '==', user.uid)
             .orderBy('createdAt', 'desc')
             .get();
 
-        // Clear main content before adding new content
+        // Clear main content
         mainContent.innerHTML = '';
 
-        // Create table container for scrolling
-        const tableContainer = document.createElement('div');
-        tableContainer.className = 'events-table-container';
-
-        const table = document.createElement('table');
-        table.className = 'events-table';
-
-        // Add table header
-        const thead = document.createElement('thead');
-        thead.innerHTML = `
-            <tr>
-                <th>Title</th>
-                <th>Start Date</th>
-                <th>End Date</th>
-                <th>Location</th>
-                <th>Actions</th>
-            </tr>
-        `;
-        table.appendChild(thead);
-
-        // Add table body
-        const tbody = document.createElement('tbody');
+        // Create events container
+        const eventsContainer = document.createElement('div');
+        eventsContainer.className = 'events-container';
 
         if (eventsSnapshot.empty) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="5" class="no-events">No events found</td>
-                </tr>
+            eventsContainer.innerHTML = `
+                <div class="no-events">
+                    <p>No events found</p>
+                </div>
             `;
         } else {
+            // Add header
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'events-header';
+            headerDiv.innerHTML = `
+                <div class="event-col">Event</div>
+                <div class="date-col">Start Date</div>
+                <div class="date-col">End Date</div>
+                <div class="actions-col">Actions</div>
+            `;
+            eventsContainer.appendChild(headerDiv);
+
+            // Add events
             eventsSnapshot.forEach(doc => {
                 const event = doc.data();
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${event.title}</td>
-                    <td>${formatDate(event.startDate)}</td>
-                    <td>${formatDate(event.endDate)}</td>
-                    <td>${event.location}</td>
-                    <td class="actions-cell">
-                        <button class="button view-button" data-id="${doc.id}">View</button>
-                        <button class="button edit-button" data-id="${doc.id}">Edit</button>
-                        <button class="button delete-button" data-id="${doc.id}">Delete</button>
-                    </td>
+                // console.log('Event', event);
+                
+                const eventDiv = document.createElement('div');
+                eventDiv.className = 'event-row';
+
+                const editIcon = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 32 32"><path fill="#4b4b4d" d="M22.1,3.8L5.8,20.1l-1.8,7.9,7.9-1.8L28.2,9.9l-6.1-6.1ZM26.1,9.9l-1.4,1.4-3.9-3.9,1.4-1.4,3.9,3.9ZM10.2,22.9l9.9-9.9,1.4,1.4-9.9,9.9-1.4-1.4ZM7.7,20.4l9.9-9.9,1.4,1.4-9.9,9.9-1.4-1.4ZM18.7,9.4l.9-.9,3.9,3.9-.9.9-3.9-3.9ZM7,21.8l3.2,3.2-4.2,1,1-4.2Z"/></svg>';
+                const deleteIcon = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 32 32"><rect fill="#4b4b4d" x="12.8" y="14" width="1.5" height="10"/><rect fill="#4b4b4d" x="17.8" y="14" width="1.5" height="10"/><path fill="#4b4b4d" d="M25.2,10.5c0-1.5-1.2-2.8-2.8-2.8h-3.2v-.8c0-1.2-1-2.2-2.2-2.2h-2c-1.2,0-2.2,1-2.2,2.2v.8h-3.2c-1.5,0-2.8,1.2-2.8,2.8v1.8h2v15h14.5v-15h2v-1.8ZM14.2,7c0-.4.3-.8.8-.8h2c.4,0,.8.3.8.8v.8h-3.5v-.8ZM21.8,25.8h-11.5v-13.5h11.5v13.5ZM23.8,10.8h-15.5v-.3c0-.7.6-1.2,1.2-1.2h13c.7,0,1.2.6,1.2,1.2v.3Z"/></svg>';
+                const viewIcon = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 32 32"><path fill="#4b4b4d" d="M16,20.2c-2.3,0-4.2-1.9-4.2-4.2s1.9-4.2,4.2-4.2,4.2,1.9,4.2,4.2-1.9,4.2-4.2,4.2ZM16,13.2c-1.5,0-2.8,1.2-2.8,2.8s1.2,2.8,2.8,2.8,2.8-1.2,2.8-2.8-1.2-2.8-2.8-2.8Z"/><path fill="#4b4b4d" d="M16,23.2h0c-2.7,0-5.3-1.1-7.2-3l-4.3-4.2,4.3-4.2c1.9-1.9,4.5-3,7.2-3s5.3,1.1,7.2,3l4.3,4.2-4.3,4.2c-1.9,1.9-4.5,3-7.2,3ZM6.5,16l3.4,3.2c1.7,1.6,3.9,2.6,6.2,2.6s4.5-.9,6.2-2.6l3.4-3.2-3.4-3.2c-1.7-1.6-3.9-2.6-6.2-2.6s-4.5.9-6.2,2.6l-3.4,3.2Z"/></svg>';
+                const chevronIcon = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 32 32"><polygon fill="#4b4b4d" points="12.8 25 11.7 24 19.7 16 11.7 8 12.8 7 21.8 16 12.8 25"/></svg>';
+                
+                eventDiv.innerHTML = `
+                    <div class="event-summary">
+                        <div class="event-col">
+                            <span class="expand-icon">${chevronIcon}</span>
+                            ${event.title}
+                        </div>
+                        <div class="date-col" data-date="${event.startDate}">${formatDate(event.startDate)}</div>
+                        <div class="date-col" data-date="${event.endDate}">${formatDate(event.endDate)}</div>
+                        <div class="actions-col">
+                            <button class="button view-button" data-id="${doc.id}">
+                                <span class="icon">${viewIcon}</span>
+                            </button>
+                            <button class="button edit-button" data-id="${doc.id}">
+                                <span class="icon">${editIcon}</span>
+                            </button>
+                            <button class="button delete-button" data-id="${doc.id}">
+                                <span class="icon">${deleteIcon}</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="event-details">
+                        <div class="details-grid">
+                            ${window.innerWidth <= 768 ? `
+                                <div class="detail-section dates">
+                                    <div>
+                                        <h4>Start Date</h4>
+                                        <p>${formatDate(event.startDate)}</p>
+                                    </div>
+                                    <div>
+                                        <h4>End Date</h4>
+                                        <p>${formatDate(event.endDate)}</p>
+                                    </div>
+                                </div>
+                            ` : ''}
+                            <div class="detail-section">
+                                <h4>Description</h4>
+                                <p>${event.description || 'No description provided.'}</p>
+                            </div>
+                            <div class="detail-section">
+                                <h4>Location</h4>
+                                <p>${event.location}</p>
+                            </div>
+                            <div class="detail-section">
+                                <h4>Status</h4>
+                                <p class="event-status ${getEventStatus(event.startDate)}">${getEventStatus(event.startDate)}</p>
+                            </div>
+                            <div class="detail-section">
+                                <h4>Responses</h4>
+                                <div class="responses-info">
+                                    <p class="responses-count">${Array.isArray(event.responses) ? event.responses.length : 0} people invited</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 `;
-                tbody.appendChild(tr);
+
+                // Update click handler for expansion
+                const eventCol = eventDiv.querySelector('.event-summary');
+                const detailsDiv = eventDiv.querySelector('.event-details');
+                const expandIcon = eventDiv.querySelector('.expand-icon');
+                
+                eventCol.addEventListener('click', async (e) => {
+                    if (!e.target.closest('.actions-col')) {
+                        // Get availability data from public_events collection
+                        try {
+                            const publicEventRef = await db.collection('public_events').doc(doc.id).get();
+                            const publicEventData = publicEventRef.data() || {};
+                            const responsesCount = Object.keys(publicEventData?.responses || {}).length;
+
+                            // console.log('Event Details:', {
+                            //     title: event.title,
+                            //     description: event.description,
+                            //     location: event.location,
+                            //     startDate: event.startDate,
+                            //     endDate: event.endDate,
+                            //     invitees: event.invitees,
+                            //     status: getEventStatus(event.startDate),
+                            //     createdBy: event.createdBy,
+                            //     eventId: doc.id,
+                            //     publicEventExists: publicEventRef.exists,
+                            //     rawPublicEventData: publicEventData,
+                            //     availability: publicEventData?.availability || [],
+                            //     responses: publicEventData?.responses || {}
+                            // });
+
+                            // If clicking the currently open event, just close it
+                            if (currentlyOpenEvent === detailsDiv) {
+                                expandIcon.classList.remove('expanded');
+                                const grid = detailsDiv.querySelector('.details-grid');
+                                grid.style.maxHeight = '0';
+                                detailsDiv.style.display = 'none'; // Hide immediately
+                                detailsDiv.classList.remove('expanded');
+                                currentlyOpenEvent = null;
+                                return;
+                            }
+
+                            // Close the currently open event if there is one
+                            if (currentlyOpenEvent) {
+                                const previousIcon = currentlyOpenEvent.parentElement.querySelector('.expand-icon');
+                                previousIcon.classList.remove('expanded');
+                                currentlyOpenEvent.style.display = 'none'; // Hide immediately
+                                currentlyOpenEvent.classList.remove('expanded');
+                                const previousGrid = currentlyOpenEvent.querySelector('.details-grid');
+                                previousGrid.style.maxHeight = '0';
+                            }
+
+                            // Open the clicked event
+                            detailsDiv.style.display = 'block';
+                            // Force a reflow to enable the transition
+                            detailsDiv.offsetHeight;
+                            const grid = detailsDiv.querySelector('.details-grid');
+                            grid.style.maxHeight = '500px';
+                            const count = detailsDiv.querySelector('.responses-count');
+                            count.innerHTML = `${responsesCount}`;
+                            detailsDiv.classList.add('expanded');
+                            expandIcon.classList.add('expanded');
+                            currentlyOpenEvent = detailsDiv;
+
+                        } catch (error) {
+                            console.error('Error fetching availability data:', error);
+                        }
+                    }
+                });
+
+                eventsContainer.appendChild(eventDiv);
             });
         }
 
-        table.appendChild(tbody);
-        tableContainer.appendChild(table);
-        mainContent.appendChild(tableContainer);
+        mainContent.appendChild(eventsContainer);
 
-        // Add event listeners for buttons
-        document.querySelectorAll('.view-button').forEach(button => {
-            button.addEventListener('click', () => {
-                const eventId = button.getAttribute('data-id');
-                window.open(`event.html?id=${eventId}`, '_blank');
-            });
-        });
+        // Add event listeners for buttons`
+        addEventButtonListeners(eventsContainer);
 
-        document.querySelectorAll('.edit-button').forEach(button => {
-            button.addEventListener('click', () => {
-                const eventId = button.getAttribute('data-id');
-                editEvent(eventId);
-            });
-        });
-
-        document.querySelectorAll('.delete-button').forEach(button => {
-            button.addEventListener('click', () => {
-                const eventId = button.getAttribute('data-id');
-                confirmDeleteEvent(eventId);
-            });
+        // Add scroll handler after creating events container
+        eventsContainer.addEventListener('scroll', () => {
+            if (eventsContainer.scrollTop > 0) {
+                eventsContainer.classList.add('scrolled');
+            } else {
+                eventsContainer.classList.remove('scrolled');
+            }
         });
 
     } catch (error) {
@@ -1546,15 +1630,87 @@ async function loadAndDisplayEvents() {
     }
 }
 
-// Helper function to format dates
+// Update the formatDate function to handle mobile formatting
 function formatDate(dateString) {
     if (!dateString) return '-';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric'
+    
+    // Check if viewport is mobile
+    if (window.innerWidth <= 768) {
+        // Mobile format: MM/DD/YY
+        return date.toLocaleDateString('en-US', {
+            month: '2-digit',
+            day: '2-digit',
+            year: '2-digit'
+        });
+    } else {
+        // Desktop format: Month DD, YYYY
+        return date.toLocaleDateString('en-US', {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric'
+        });
+    }
+}
+
+// Update resize listener to handle both date columns and details
+window.addEventListener('resize', () => {
+    const isMobile = window.innerWidth <= 768;
+    
+    // Update date columns
+    const dateElements = document.querySelectorAll('.date-col');
+    dateElements.forEach(element => {
+        const originalDate = element.getAttribute('data-date');
+        if (originalDate) {
+            element.textContent = formatDate(originalDate);
+        }
     });
+
+    // Update details sections
+    document.querySelectorAll('.details-grid').forEach(grid => {
+        const datesSection = grid.querySelector('.detail-section.dates');
+        const event = grid.closest('.event-row');
+        
+        if (isMobile && !datesSection) {
+            // Add dates section if on mobile
+            const startDate = event.querySelector('.date-col[data-date]').getAttribute('data-date');
+            const endDate = event.querySelector('.date-col[data-date]:last-of-type').getAttribute('data-date');
+            
+            const datesSectionHTML = `
+                <div class="detail-section dates">
+                    <div>
+                        <h4>Start Date</h4>
+                        <p>${formatDate(startDate)}</p>
+                    </div>
+                    <div>
+                        <h4>End Date</h4>
+                        <p>${formatDate(endDate)}</p>
+                    </div>
+                </div>
+            `;
+            grid.insertAdjacentHTML('afterbegin', datesSectionHTML);
+        } else if (!isMobile && datesSection) {
+            // Remove dates section if on desktop
+            datesSection.remove();
+        }
+    });
+});
+
+// Add this function to calculate event status
+function getEventStatus(startDate) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time part for date comparison
+    
+    const eventDate = new Date(startDate);
+    eventDate.setHours(0, 0, 0, 0);
+    
+    if (eventDate > today) {
+        return "upcoming";
+    } else if (eventDate.getTime() === today.getTime()) {
+        return "today";
+    } else {
+        return "completed";
+    }
 }
 
 // Update the saveEvent function to use inline errors
@@ -1618,12 +1774,25 @@ async function saveEvent(form) {
                 email: user.email
             },
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            invitees: Array.from(form.querySelectorAll('.invitee-checkbox:checked'))
+                .map(checkbox => checkbox.value)
         };
 
-        // Save to Firestore
-        const docRef = await db.collection('events').add(eventData);
-        console.log('Event saved successfully:', docRef.id);
+        console.log('Creating new event:', eventData);
+
+        // Save to events collection
+        const eventRef = await db.collection('events').add(eventData);
+        console.log('Created event in events collection:', eventRef.id);
+
+        // Save to public_events collection
+        await db.collection('public_events').doc(eventRef.id).set({
+            ...eventData,
+            eventId: eventRef.id,
+            availability: [], // Initialize empty availability array
+            responses: {}    // Initialize empty responses object
+        });
+        console.log('Created event in public_events collection:', eventRef.id);
 
         // Close modal and refresh events
         const modal = document.getElementById('newEventModal');
@@ -1788,4 +1957,97 @@ async function confirmDeleteEvent(eventId) {
             alert('Error deleting event. Please try again.');
         }
     }
-} 
+}
+
+// Add this function to handle event button listeners
+function addEventButtonListeners(container) {
+    // View button listeners
+    container.querySelectorAll('.view-button').forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent event row expansion
+            const eventId = button.getAttribute('data-id');
+            window.open(`event.html?id=${eventId}`, '_blank');
+        });
+    });
+
+    // Edit button listeners
+    container.querySelectorAll('.edit-button').forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent event row expansion
+            const eventId = button.getAttribute('data-id');
+            editEvent(eventId);
+        });
+    });
+
+    // Delete button listeners
+    container.querySelectorAll('.delete-button').forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent event row expansion
+            const eventId = button.getAttribute('data-id');
+            confirmDeleteEvent(eventId);
+        });
+    });
+}
+
+// Make sure it's available globally
+window.addEventButtonListeners = addEventButtonListeners;
+
+// Add this function to calculate response count
+function calculateResponseCount(event) {
+    if (!event.invitees || !Array.isArray(event.invitees)) {
+        return 0;
+    }
+    return event.invitees.length;
+}
+
+// Add showNewEventModal function
+window.showNewEventModal = function() {
+    const modal = document.getElementById('newEventModal');
+    if (!modal) return;
+
+    // Reset form if exists
+    const form = modal.querySelector('form');
+    if (form) {
+        form.reset();
+        // Clear validation states
+        const inputs = form.querySelectorAll('input, textarea');
+        inputs.forEach(input => {
+            input.classList.remove('invalid', 'valid');
+            const container = input.closest('.input-container');
+            if (container) {
+                const errorMessage = container.querySelector('.error-message');
+                if (errorMessage) {
+                    errorMessage.textContent = '';
+                }
+            }
+        });
+    }
+
+    // Initialize modal handlers
+    const closeButton = modal.querySelector('.close-button');
+    const cancelButton = modal.querySelector('.button.secondary');
+
+    // Close button handler
+    if (closeButton) {
+        closeButton.onclick = () => {
+            modal.style.display = 'none';
+        };
+    }
+
+    // Cancel button handler
+    if (cancelButton) {
+        cancelButton.onclick = () => {
+            modal.style.display = 'none';
+        };
+    }
+
+    // Click outside modal handler
+    modal.onclick = (event) => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    };
+
+    // Show modal
+    modal.style.display = 'block';
+}; 

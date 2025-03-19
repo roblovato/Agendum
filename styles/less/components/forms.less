@@ -1,0 +1,85 @@
+.form-group {
+    margin-bottom: @spacing-medium;
+
+    label {
+        display: block;
+        margin-bottom: @spacing-small;
+        color: @text-color;
+    }
+}
+
+.input-container {
+    position: relative;
+    
+    input, textarea, select {
+        .input();
+        width: 100%;
+        
+        &.invalid {
+            border-color: @error-color;
+            
+            & + .error-message {
+                display: block;
+                color: @error-color;
+            }
+        }
+        
+        &.valid {
+            border-color: @success-color;
+        }
+    }
+}
+
+.error-message {
+    display: none;
+    color: @error-color;
+    font-size: 0.875rem;
+    margin-top: @spacing-small;
+}
+
+.input-help {
+    color: fade(@text-color, 70%);
+    font-size: 0.875rem;
+    margin-top: @spacing-small;
+}
+
+.date-picker-container {
+    .date-range-wrapper {
+        .flex(space-between, flex-start, @spacing-medium);
+        
+        .date-input-group {
+            flex: 1;
+        }
+    }
+}
+
+.button {
+    .button-base();
+    
+    &.primary {
+        background: @button-primary-bg;
+        color: @primary-button-text-color;
+        
+        &:hover {
+            background: lighten(@button-primary-bg, 10%);
+        }
+    }
+    
+    &.secondary {
+        background: @button-secondary-bg;
+        color: @secondary-button-text-color;
+        
+        &:hover {
+            background: darken(@button-secondary-bg, 10%);
+        }
+    }
+    
+    &.danger {
+        background: @error-color;
+        color: @text-color;
+        
+        &:hover {
+            background: darken(@error-color, 10%);
+        }
+    }
+}

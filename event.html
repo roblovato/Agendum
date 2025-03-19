@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Event Details - Agendum</title>
-    <link rel="stylesheet" href="styles/styles.css">
+    <link rel="stylesheet" href="styles/css/main.css">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -40,6 +40,34 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             try {
+                // Get event ID from URL parameters
+                const urlParams = new URLSearchParams(window.location.search);
+                const eventId = urlParams.get('id');
+                
+                if (!eventId) {
+                    console.error('No event ID provided');
+                    return;
+                }
+
+                // Get event data from Firestore
+                const eventDoc = await firebase.firestore().collection('events').doc(eventId).get();
+                if (!eventDoc.exists) {
+                    console.error('Event not found');
+                    return;
+                }
+
+                // Log all event data
+                const eventData = eventDoc.data();
+                console.log('Event Details:', {
+                    id: eventId,
+                    ...eventData,
+                    createdAt: eventData.createdAt?.toDate(),
+                    updatedAt: eventData.updatedAt?.toDate(),
+                    startDate: eventData.startDate,
+                    endDate: eventData.endDate,
+                    invitees: eventData.invitees || []
+                });
+
                 // Initialize calendar
                 await initializeCalendar();
             } catch (error) {

@@ -1,0 +1,90 @@
+.main-header {
+    .flex(space-between, center);
+    padding: @spacing-medium @spacing-large;
+    background: @background-color;
+    box-shadow: 0 2px 4px fade(@border-color, 10%);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: @z-header;
+}
+
+.header-left {
+    .flex(flex-start, center, @spacing-large);
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: @primary-color;
+}
+
+.main-nav {
+    .flex(flex-start, center, @spacing-medium);
+}
+
+.nav-button {
+    &.primary {
+        .button-base();
+        background: @primary-color;
+        color: @primary-button-text-color;
+
+        &:hover {
+            background: darken(@primary-color, 10%);
+            transform: translateY(-1px);
+        }
+    }
+}
+
+.header-right {
+    .flex(flex-start, center, @spacing-medium);
+}
+
+// User navigation styles
+.user-nav {
+    .flex(flex-start, center, @spacing-medium);
+}
+
+.user-info {
+    .flex(flex-start, center, @spacing-small);
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: @border-color;
+}
+
+.user-name {
+    color: @text-color;
+}
+
+.logout-button {
+    .button-base();
+    background: @button-secondary-bg;
+    color: @secondary-button-text-color;
+
+    &:hover {
+        background: darken(@button-secondary-bg, 10%);
+        color: @error-color;
+    }
+}
+
+// Mobile responsive styles
+@media screen and (max-width: 768px) {
+    .main-header {
+        padding: @spacing-small;
+    }
+
+    .nav-button {
+        .text {
+            display: none;
+        }
+
+        .icon {
+            margin-right: 0;
+        }
+    }
+}

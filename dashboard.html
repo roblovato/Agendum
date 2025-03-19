@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Agendum</title>
-    <link rel="stylesheet" href="styles/styles.css">
+    <link rel="stylesheet" href="styles/css/main.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -71,19 +71,9 @@
                         <div class="error-message"></div>
                     </div>
                 </div>
-                
-                <!--<div class="form-group">
-                    <label for="invitees">Invitees</label>
-                    <div class="input-container invitees-container">
-                        <div class="invitees-list" id="inviteesList">
-                            <div class="loading-spinner">Loading contacts...</div>
-                        </div>
-                    </div>
-                </div> -->
-                
                 <div class="form-actions">
                     <button type="submit" class="button primary">Create Event</button>
-                    <button type="button" class="button secondary">Cancel</button>
+                    <button type="button" class="button secondary modal-cancel">Cancel</button>
                 </div>
             </form>
         </div>
@@ -187,6 +177,11 @@
         </div>
     </div>
 
+    <button class="nav-button primary" onclick="showNewEventModal()">
+        <span class="icon">+</span>
+        <span class="button-text">New Event</span>
+    </button>
+
     <script type="module">
         import { 
             createHeader, 
@@ -252,9 +247,16 @@
                     app.insertBefore(header, mainContent);
                 }
 
-                // Create and append loading overlay
-                const loadingOverlay = createLoadingOverlay();
-                document.body.appendChild(loadingOverlay);
+                // Create loading overlay HTML string
+                const loadingOverlay = `
+                    <div class="loading-overlay" style="display: none;">
+                        <div class="loading-spinner"></div>
+                        <div class="loading-message">Loading...</div>
+                    </div>
+                `;
+
+                // Add loading overlay to body using insertAdjacentHTML
+                document.body.insertAdjacentHTML('beforeend', loadingOverlay);
 
                 // Load events view directly
                 await renderView('events');

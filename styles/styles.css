@@ -5,7 +5,7 @@ body {
     width: 100vw;
     height: 100vh;
     overflow: hidden;
-    background-color: #f8f9fa;
+    background-color: #d2d8de;
     text-align: center;
     font-family: Arial, sans-serif;
 }
@@ -112,11 +112,11 @@ label {
 input {
     width: 100%;
     padding: 12px;
+    padding-right: 120px; /* Make room for error message */
     border: 2px solid #ddd;
     border-radius: 8px;
     font-size: 1em;
     box-sizing: border-box;
-    padding-right: 120px; /* Make room for error message */
 }
 
 input:focus {
@@ -164,6 +164,7 @@ input:focus {
     height: 100%;
     display: flex;
     flex-direction: column;
+    overflow: scroll
 }
 
 /* Sidebar */
@@ -205,20 +206,19 @@ input:focus {
     flex: 1;
 }
 
-
 .user-nav {
-    position: fixed;
-    top: 20px;
-    right: 20px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    z-index: 100;
+    gap: 16px;
+    padding: 8px 16px;
+    background-color: white;
+    border-radius: 24px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .user-name {
-    display: flex;
-    align-items: center;
+    color: #2c3e50;
+    font-weight: 500;
 }
 
 /* Table Styles */
@@ -226,7 +226,7 @@ input:focus {
     background: white;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    margin-top: 20px;
+    /* margin-top: 20px; */
     overflow: hidden;
     width: 100%;
 }
@@ -387,27 +387,11 @@ input:focus {
     box-sizing: border-box;
 }
 
-/* Add responsive adjustments */
-@media (max-width: 768px) {
-    .modal-form .form-group,
-    .modal-form .form-actions {
-        width: 80%;
-    }
-}
-
-@media (max-width: 480px) {
-    .modal-form .form-group,
-    .modal-form .form-actions {
-        width: 90%;
-    }
-}
-
 /* Sidebar Navigation */
 .nav-buttons {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    margin-top: 20px;
 }
 
 .nav-button {
@@ -439,34 +423,12 @@ input:focus {
     background-color: #2980b9;
 }
 
-/* User Navigation */
-.user-nav {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 8px 16px;
-    background-color: white;
-    border-radius: 24px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.user-avatar {
-    width: 32px;
-    height: 32px;
-    background-color: #3498db;
+/* .nav-button.primary.event-button {
+    background-color:red;
     color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-}
+} */
 
-.user-name {
-    color: #2c3e50;
-    font-weight: 500;
-}
-
+/* User Navigation */
 .logout-button {
     background: none;
     border: none;
@@ -1308,10 +1270,33 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* Event delete modal styles */
 .event-details {
+    display: none;
     padding: 1rem;
-    background: white;
-    border-bottom: 1px solid #eee;
-    flex-shrink: 0;
+    background: #f8f9fa;
+    border-top: 1px solid #eee;
+    overflow: hidden;
+}
+
+.event-details .details-grid {
+    max-height: 0;
+    transition: max-height 0.3s ease-out;
+}
+
+.event-details.expanded {
+    display: block;
+}
+
+.event-details.expanded .details-grid {
+    max-height: 500px;
+}
+
+.expand-icon {
+    transform: rotate(0deg);
+    transition: transform 0.3s ease-out;
+}
+
+.expand-icon.expanded {
+    transform: rotate(90deg);
 }
 
 .event-details h1 {
@@ -1390,31 +1375,24 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* Update event details styles */
 .event-details {
+    display: none;
     padding: 1rem;
-    background: white;
-    border-bottom: 1px solid #eee;
-    flex-shrink: 0;
+    background: #f8f9fa;
+    border-top: 1px solid #eee;
+    overflow: hidden;
 }
 
-.event-details h1 {
-    margin: 0 0 1rem 0;
-    color: #2c3e50;
-    font-size: 1.5rem;
+.event-details .details-grid {
+    max-height: 0;
+    transition: max-height 0.3s ease-out;
 }
 
-.event-info {
-    color: #666;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
+.event-details.expanded {
+    display: block;
 }
 
-.event-info p {
-    margin: 0;
-}
-
-.event-info strong {
-    color: #2c3e50;
+.event-details.expanded .details-grid {
+    max-height: 500px;
 }
 
 /* Update calendar header styles */
@@ -1477,18 +1455,399 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 /* Update error message styles */
 .error-message {
     position: absolute;
-    right: 0;
+    right: 8px;
     top: 50%;
     transform: translateY(-50%);
     color: #e74c3c;
     font-size: 0.8rem;
     font-weight: 500;
-    padding-right: 1rem;
 }
 
-/* Style invalid inputs */
-.input-container input.invalid,
-.input-container textarea.invalid,
-.input-container .flatpickr-input.invalid {
-    border-color: #e74c3c;
+/* Style for invalid inputs */
+.input-container input.invalid {
+    border-color: #e74c3c !important;
+}
+
+/* Make room for error messages */
+.input-container input {
+    padding-right: 120px;
+}
+
+/* Auth form specific styles */
+.auth-container .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.auth-container .input-container {
+    margin-top: 0.5rem;
+}
+
+/* Add styles for auth links */
+.auth-link {
+    color: #3498db;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.auth-link:hover {
+    text-decoration: underline;
+}
+
+/* Add auth container styles */
+.auth-container {
+    max-width: 400px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.auth-container h1 {
+    margin-bottom: 2rem;
+    color: #2c3e50;
+    text-align: center;
+}
+
+/* Event list styles */
+.events-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: auto;
+    max-height: calc(100vh - 140px); /* Account for header and padding */
+    position: relative; /* For sticky header */
+}
+
+.events-header {
+    display: grid;
+    grid-template-columns: minmax(200px, 2fr) 150px 150px 120px;
+    padding: 1rem;
+    background: #f8f9fa;
+    font-weight: 600;
+    border-bottom: 1px solid #eee;
+    gap: 1rem;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* Add subtle shadow to header when scrolled */
+.events-container.scrolled .events-header {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.event-row {
+    border-bottom: 1px solid #eee;
+}
+
+.event-summary {
+    display: grid;
+    grid-template-columns: minmax(200px, 2fr) 150px 150px 120px;
+    padding: 1rem;
+    align-items: center;
+    transition: background-color 0.2s;
+    gap: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.event-summary:hover {
+    background-color: #f8f9fa;
+    cursor: pointer;
+}
+
+.event-col {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.expand-icon {
+    transform: rotate(0deg);
+    transition: transform 0.3s ease-out;
+    flex-shrink: 0;
+    width: 20px;
+    text-align: center;
+}
+
+.date-col {
+    text-align: center;
+}
+
+.event-details {
+    display: none;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-top: 1px solid #eee;
+}
+
+.details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.detail-section h4 {
+    margin: 0 0 0.5rem 0;
+    color: #666;
+}
+
+.detail-section p {
+    margin: 0;
+    color: #2c3e50;
+}
+
+.actions-col {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.button.view-button,
+.button.edit-button,
+.button.delete-button {
+    padding: 0.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.icon {
+    width: 25px;
+    height: 25px;
+    display: block;
+}
+
+.new-event-icon {
+    font-size: 1.5rem;
+}
+
+/* Mobile responsive styles - All media queries consolidated */
+@media (max-width: 480px) {
+    .main-content {
+        padding: 1rem !important;
+        margin-top: 110px !important;
+    }
+
+    .modal-form .form-group,
+    .modal-form .form-actions {
+        width: 90%;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Event list layout */
+    .events-header {
+        grid-template-columns: minmax(200px, 1fr) 120px;
+        gap: 0.5rem;
+    }
+
+    .event-summary {
+        grid-template-columns: minmax(200px, 1fr) 120px;
+        gap: 0.5rem;
+    }
+
+    .date-col {
+        display: none;
+    }
+
+    /* Add dates to event details on mobile */
+    .details-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .detail-section.dates {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    /* Other mobile styles remain the same */
+    .event-col {
+        gap: 0.25rem;
+    }
+
+    .actions-col {
+        gap: 0.25rem;
+    }
+
+    .modal-content {
+        width: 95%;
+        margin: 20px auto;
+    }
+
+    /* Button adjustments */
+    .button-container {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .button {
+        width: 100%;
+    }
+
+    /* Main content padding */
+    .main-content {
+        padding: 1rem;
+    }
+
+    /* Auth container */
+    .auth-container {
+        margin: 1rem;
+        padding: 1rem;
+    }
+
+    .modal-form .form-group,
+    .modal-form .form-actions {
+        width: 80%;
+    }
+
+    /* New Event button mobile style */
+    .nav-button.primary span:not(.icon) {
+        display: none;
+    }
+
+    .nav-button .icon {
+        margin: 0;
+    }
+}
+
+/* Tablet and medium screens */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .main-content {
+        padding: 1.5rem;
+    }
+
+    .modal-content {
+        width: 80%;
+    }
+}
+
+/* Print styles */
+@media print {
+    .no-print {
+        display: none;
+    }
+
+    .events-container {
+        box-shadow: none;
+        overflow: visible;
+    }
+
+    .event-details {
+        display: block !important;
+        page-break-inside: avoid;
+    }
+}
+
+/* Add status styles */
+.event-status {
+    text-transform: capitalize;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.event-status.upcoming {
+    background-color: #e3f2fd;
+    color: #1976d2;
+}
+
+.event-status.today {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.event-status.completed {
+    background-color: #f5f5f5;
+    color: #616161;
+}
+
+/* Add attendee info styles */
+.attendee-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.attendee-count {
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+.attendee-status {
+    color: #666;
+    font-size: 0.9em;
+}
+
+/* Update detail section spacing */
+.detail-section {
+    padding: 12px;
+    background: white;
+    border-radius: 8px;
+}
+
+.detail-section h4 {
+    margin-bottom: 8px;
+    color: #666;
+}
+
+.flex(@justify: flex-start, @align: center, @gap: 0) {
+    display: flex;
+    justify-content: @justify;
+    align-items: @align;
+    gap: @gap;
+}
+
+.button-base() {
+    padding: @gap-small @gap-medium;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all @transition-duration;
+}
+
+.main-header {
+    .flex(space-between);
+    padding: @header-padding;
+    background: @background-color;
+    box-shadow: 0 2px 4px @border-color;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: @z-header;
+}
+
+.header-left {
+    .flex(flex-start, center, @gap-large);
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: @primary-color;
+}
+
+.nav-buttons {
+    .flex(flex-start, center, @gap-medium);
+}
+
+.nav-button {
+    &.primary {
+        .button-base();
+        background: @primary-color;
+        color: @background-color;
+
+        &:hover {
+            background: @secondary-color;
+            transform: translateY(-1px);
+        }
+    }
 } 

@@ -15,6 +15,10 @@
               ".write": true
             }
           },
+          "public_events/{eventId}": {
+            ".read": true,
+            ".write": true
+          },
           "contacts/{contactId}": {
             ".read": "request.auth != null",
             ".create": "request.auth != null",
@@ -22,6 +26,12 @@
             ".delete": "request.auth != null && request.auth.uid == resource.data.userId"
           }
         }
+      }
+    },
+    "users": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid"
       }
     }
   }

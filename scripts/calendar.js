@@ -390,7 +390,7 @@ function hideEventTooltip() {
 
 // Update isDateInRange function with more logging
 function isDateInRange(dateString) {
-    console.log('Checking date range for:', dateString);
+    // console.log('Checking date range for:', dateString);
     
     // Parse dates consistently
     const checkDate = new Date(dateString);
@@ -404,12 +404,12 @@ function isDateInRange(dateString) {
     
     const isInRange = checkDate >= startDate && checkDate <= endDate;
     
-    console.log({
-        checkDate: checkDate.toISOString(),
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        isInRange: isInRange
-    });
+    // console.log({
+    //     checkDate: checkDate.toISOString(),
+    //     startDate: startDate.toISOString(),
+    //     endDate: endDate.toISOString(),
+    //     isInRange: isInRange
+    // });
     
     return isInRange;
 }
@@ -577,11 +577,33 @@ async function saveSelectedDates(submitterName) {
             submittedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
-        // Save to subcollection (allowed by rules)
+        // Save to events subcollection (allowed by rules)
         await db.collection('events').doc(eventData.id)
             .collection('availability')
             .doc(submitterId)
             .set(availabilityData);
+
+        // Save to public_events collection using update to preserve other responses
+        await db.collection('public_events').doc(eventData.id).update({
+            [`responses.${submitterName}`]: {
+                dates: Array.from(selectedDates),
+                submittedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }
+        }).catch(async (error) => {
+            // If document doesn't exist, create it
+            if (error.code === 'not-found') {
+                await db.collection('public_events').doc(eventData.id).set({
+                    responses: {
+                        [submitterName]: {
+                            dates: Array.from(selectedDates),
+                            submittedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        }
+                    }
+                });
+            } else {
+                throw error;
+            }
+        });
 
         // Store submission in localStorage
         localStorage.setItem(`event_${eventData.id}_submitted`, 'true');
@@ -623,6 +645,7 @@ async function saveSelectedDates(submitterName) {
                 
                 // Re-render calendar
                 renderCalendar();
+                console.log('here', availabilityData);
             };
             
             // Handle OK button click

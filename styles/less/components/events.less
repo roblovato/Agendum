@@ -1,0 +1,103 @@
+.events-container {
+    .card();
+    overflow: hidden;
+}
+
+.events-header {
+    .flex(space-between);
+    padding: @spacing-medium;
+    background: @text-color;
+    color: @primary-color;
+    font-weight: bold;
+}
+
+.event-row {
+    border-bottom: 1px solid @border-color;
+    
+    &:last-child {
+        border-bottom: none;
+    }
+
+    .event-summary {
+        .flex(space-between);
+        padding: @spacing-medium;
+        cursor: pointer;
+        transition: background-color @transition-duration;
+
+        &:hover {
+            background: lighten(@background-color, 10%);
+        }
+    }
+
+    .event-details {
+        display: none;
+        padding: @spacing-medium;
+        background: lighten(@background-color, 5%);
+        
+        &.expanded {
+            display: block;
+        }
+    }
+
+    .details-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: @spacing-medium;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height @transition-duration;
+    }
+}
+
+.event-status {
+    &.upcoming {
+        .status-badge(@info-color);
+    }
+    
+    &.today {
+        .status-badge(@warning-color);
+    }
+    
+    &.completed {
+        .status-badge(@success-color);
+    }
+}
+
+.event-col {
+    flex: 2;
+    .flex(flex-start, center, @spacing-small);
+    
+    .expand-icon {
+        transition: transform @transition-duration;
+        
+        &.expanded {
+            transform: rotate(90deg);
+        }
+    }
+}
+
+.date-col {
+    flex: 1;
+    text-align: center;
+}
+
+.actions-col {
+    .flex(flex-end, center, @spacing-small);
+    
+    button {
+        .button-base();
+        padding: @spacing-small;
+        
+        &.view-button {
+            color: @info-color;
+        }
+        
+        &.edit-button {
+            color: @warning-color;
+        }
+        
+        &.delete-button {
+            color: @error-color;
+        }
+    }
+}

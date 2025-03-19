@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign Up - Agendum</title>
-    <link rel="stylesheet" href="styles/styles.css">
+    <link rel="stylesheet" href="styles/css/main.css">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -12,99 +12,160 @@
 </head>
 <body>
     <div id="app">
-        <!-- Components will be loaded here -->
-    </div>
-
-    <script type="module">
-        import { 
-            createAuthContainer, 
-            createLoadingOverlay
-        } from './scripts/components.js';
-
-        const signupForm = `
+        <div class="auth-container">
+            <h1>Sign Up</h1>
             <form class="signup-form" id="signupForm">
                 <div class="form-group">
                     <label for="name">Full Name</label>
                     <div class="input-container">
                         <input type="text" id="name" name="name" required>
+                        <span class="error-message"></span>
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="email">Email Address</label>
                     <div class="input-container">
                         <input type="email" id="email" name="email" required>
+                        <span class="error-message"></span>
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="password">Password</label>
                     <div class="input-container">
                         <input type="password" id="password" name="password" required>
+                        <span class="error-message"></span>
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="confirmPassword">Confirm Password</label>
                     <div class="input-container">
                         <input type="password" id="confirmPassword" name="confirmPassword" required>
+                        <span class="error-message"></span>
                     </div>
                 </div>
                 <button type="submit" class="button signup signup-button">Sign Up</button>
             </form>
-        `;
-
-        const linkText = `
             <p class="login-link">
                 Already have an account? <a href="signin.html">Sign In</a>
             </p>
-        `;
+        </div>
+    </div>
 
-        // Initialize the app
-        document.getElementById('app').innerHTML = `
-            ${createLoadingOverlay()}
-            ${createAuthContainer('Create Account', signupForm, linkText)}
-        `;
+    <div class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-message">Loading...</div>
+    </div>
 
-        // Handle form submission
+    <script>
         document.addEventListener('DOMContentLoaded', () => {
             const form = document.getElementById('signupForm');
             if (form) {
                 form.addEventListener('submit', async (e) => {
                     e.preventDefault();
-                    const name = form.querySelector('#name').value;
-                    const email = form.querySelector('#email').value;
-                    const password = form.querySelector('#password').value;
-                    const confirmPassword = form.querySelector('#confirmPassword').value;
-
-                    if (password !== confirmPassword) {
-                        alert("Passwords don't match!");
-                        return;
+                    
+                    // Clear previous errors
+                    document.querySelectorAll('.error-message').forEach(msg => {
+                        msg.textContent = '';
+                        msg.parentElement.querySelector('input').classList.remove('invalid');
+                    });
+                    
+                    const nameInput = form.querySelector('#name');
+                    const emailInput = form.querySelector('#email');
+                    const passwordInput = form.querySelector('#password');
+                    const confirmPasswordInput = form.querySelector('#confirmPassword');
+                    
+                    let hasError = false;
+                    
+                    // Validate name
+                    if (!nameInput.value.trim()) {
+                        showError(nameInput, 'Name is required');
+                        hasError = true;
                     }
+                    
+                    // Validate email
+                    if (!emailInput.value.trim()) {
+                        showError(emailInput, 'Email is required');
+                        hasError = true;
+                    }
+                    
+                    // Validate password
+                    const password = passwordInput.value;
+                    if (!password) {
+                        showError(passwordInput, 'Password is required');
+                        hasError = true;
+                    } else {
+                        // Check password requirements
+                        if (password.length < 6) {
+                            showError(passwordInput, 'Password must be at least 6 characters');
+                            hasError = true;
+                        }
+                        if (!/[A-Z]/.test(password)) {
+                            showError(passwordInput, 'Password must contain an uppercase letter');
+                            hasError = true;
+                        }
+                        if (!/[0-9]/.test(password)) {
+                            showError(passwordInput, 'Password must contain a number');
+                            hasError = true;
+                        }
+                        if (!/[^A-Za-z0-9]/.test(password)) {
+                            showError(passwordInput, 'Password must contain a special character');
+                            hasError = true;
+                        }
+                    }
+                    
+                    // Validate password confirmation
+                    if (password !== confirmPasswordInput.value) {
+                        showError(confirmPasswordInput, "Passwords don't match");
+                        hasError = true;
+                    }
+                    
+                    if (hasError) return;
 
                     try {
-                        const loading = document.querySelector('.loading-overlay');
-                        if (loading) loading.classList.add('show');
+                        const loadingOverlay = document.querySelector('.loading-overlay');
+                        if (loadingOverlay) loadingOverlay.style.display = 'flex';
 
-                        // Create user with email and password
-                        const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+                        // First create the user
+                        const userCredential = await firebase.auth().createUserWithEmailAndPassword(
+                            emailInput.value.trim(), 
+                            password
+                        );
                         
-                        // Add user data to Firestore
-                        await db.collection('users').doc(userCredential.user.uid).set({
-                            name: name,
-                            email: email,
-                            createdAt: new Date()
-                        });
+                        try {
+                            // Then try to create the user profile
+                            await db.collection('users').doc(userCredential.user.uid).set({
+                                name: nameInput.value.trim(),
+                                email: emailInput.value.trim(),
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        } catch (dbError) {
+                            console.error('Error creating user profile:', dbError);
+                            // Even if profile creation fails, continue to dashboard
+                            // The profile can be created later
+                        }
 
-                        console.log('Sign-up successful:', userCredential.user);
-                        window.location.href = 'dashboard.html';
+                        window.location.replace('dashboard.html');
                     } catch (error) {
                         console.error('Sign-up error:', error);
-                        alert(error.message);
-                        const loading = document.querySelector('.loading-overlay');
-                        if (loading) loading.classList.remove('show');
+                        if (error.code === 'permission-denied') {
+                            showError(emailInput, 'Unable to create user profile. Please try again.');
+                        } else {
+                            showError(emailInput, error.message);
+                        }
+                    } finally {
+                        const loadingOverlay = document.querySelector('.loading-overlay');
+                        if (loadingOverlay) loadingOverlay.style.display = 'none';
                     }
                 });
             }
         });
+
+        // Helper function to show errors
+        function showError(input, message) {
+            const errorElement = input.parentElement.querySelector('.error-message');
+            errorElement.textContent = message;
+            input.classList.add('invalid');
+        }
     </script>
-    <script type="module" src="scripts/scripts.js"></script>
 </body>
 </html> 

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign In - Agendum</title>
-    <link rel="stylesheet" href="styles/styles.css">
+    <link rel="stylesheet" href="styles/css/main.css">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -12,22 +12,14 @@
 </head>
 <body>
     <div id="app">
-        <!-- Components will be loaded here -->
-    </div>
-
-    <script type="module">
-        import { 
-            createAuthContainer, 
-            createLoadingOverlay
-        } from './scripts/components.js';
-
-        const signinForm = `
-            <form class="modal-form" onsubmit="handleSignIn(event)">
+        <div class="auth-container">
+            <h1>Sign In</h1>
+            <form class="modal-form">
                 <div class="form-group">
                     <label for="email">Email</label>
                     <div class="input-container">
                         <input type="email" id="email" name="email" required>
-                        <div class="error-message"></div>
+                        <span class="error-message"></span>
                     </div>
                 </div>
                 <div class="form-group">
@@ -39,59 +31,66 @@
                 </div>
                 <button type="submit" class="button primary signup-button">Sign In</button>
             </form>
-        `;
-
-        const linkText = `
             <p class="login-link">
                 Don't have an account? <a href="signup.html">Sign Up</a>
             </p>
-            <p class="forgot-password">
-                <a href="/forgot-password">Forgot Password?</a>
-            </p>
-        `;
+        </div>
+    </div>
 
-        // Initialize the app
-        document.getElementById('app').innerHTML = `
-            ${createLoadingOverlay()}
-            ${createAuthContainer('Sign In', signinForm, linkText)}
-        `;
+    <div class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-message">Loading...</div>
+    </div>
 
-        // Wait for Firebase to initialize
+    <script>
         document.addEventListener('DOMContentLoaded', () => {
             const form = document.querySelector('form');
-            const errorDisplay = document.createElement('div');
-            errorDisplay.className = 'error-message';
-            form.insertBefore(errorDisplay, form.querySelector('.form-actions'));
-
+            
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                errorDisplay.textContent = '';
                 
-                const email = form.querySelector('input[type="email"]').value.trim();
-                const password = form.querySelector('input[type="password"]').value;
+                // Clear previous errors
+                document.querySelectorAll('.error-message').forEach(msg => msg.textContent = '');
                 
-                if (!email || !password) {
-                    errorDisplay.textContent = 'Please enter both email and password.';
-                    return;
+                const emailInput = form.querySelector('#email');
+                const passwordInput = form.querySelector('#password');
+                
+                const email = emailInput.value.trim();
+                const password = passwordInput.value;
+                
+                let hasError = false;
+                
+                if (!email) {
+                    const errorElement = emailInput.parentElement.querySelector('.error-message');
+                    errorElement.textContent = 'Email is required';
+                    emailInput.classList.add('invalid');
+                    hasError = true;
                 }
+                
+                if (!password) {
+                    const errorElement = passwordInput.parentElement.querySelector('.error-message');
+                    errorElement.textContent = 'Password is required';
+                    passwordInput.classList.add('invalid');
+                    hasError = true;
+                }
+                
+                if (hasError) return;
 
                 try {
                     const loading = document.querySelector('.loading-overlay');
-                    if (loading) loading.classList.add('show');
+                    if (loading) loading.style.display = 'flex';
 
-                    // Simple sign in without additional complexity
                     await firebase.auth().signInWithEmailAndPassword(email, password);
-                    window.location.href = 'dashboard.html';
+                    window.location.replace('dashboard.html');
                 } catch (error) {
                     console.error('Sign in error:', error);
-                    errorDisplay.textContent = error.message;
-                } finally {
-                    const loading = document.querySelector('.loading-overlay');
-                    if (loading) loading.classList.remove('show');
+                    // Show error in email field's error message
+                    const errorElement = emailInput.parentElement.querySelector('.error-message');
+                    errorElement.textContent = error.message;
+                    if (loading) loading.style.display = 'none';
                 }
             });
         });
     </script>
-    <script type="module" src="scripts/scripts.js"></script>
 </body>
 </html> 
