@@ -9,41 +9,44 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="scripts/firebase-config.js"></script>
+    <script src="scripts/scripts.js" defer></script>
 </head>
 <body>
     <div id="app">
         <div class="auth-container">
             <h1>Sign Up</h1>
-            <form class="signup-form" id="signupForm">
+            <form class="modal-form" id="signupForm" novalidate>
                 <div class="form-group">
                     <label for="name">Full Name</label>
                     <div class="input-container">
-                        <input type="text" id="name" name="name" required>
-                        <span class="error-message"></span>
+                        <input type="text" id="name" name="name">
+                        <div class="error-message"></div>
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="email">Email Address</label>
                     <div class="input-container">
-                        <input type="email" id="email" name="email" required>
-                        <span class="error-message"></span>
+                        <input type="email" id="email" name="email">
+                        <div class="error-message"></div>
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="password">Password</label>
                     <div class="input-container">
-                        <input type="password" id="password" name="password" required>
-                        <span class="error-message"></span>
+                        <input type="password" id="password" name="password">
+                        <div class="error-message"></div>
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="confirmPassword">Confirm Password</label>
                     <div class="input-container">
-                        <input type="password" id="confirmPassword" name="confirmPassword" required>
-                        <span class="error-message"></span>
+                        <input type="password" id="confirmPassword" name="confirmPassword">
+                        <div class="error-message"></div>
                     </div>
                 </div>
-                <button type="submit" class="button signup signup-button">Sign Up</button>
+                <div class="buttons">
+                    <button type="submit" class="button primary">Sign Up</button>
+                </div>
             </form>
             <p class="login-link">
                 Already have an account? <a href="signin.html">Sign In</a>
@@ -64,10 +67,7 @@
                     e.preventDefault();
                     
                     // Clear previous errors
-                    document.querySelectorAll('.error-message').forEach(msg => {
-                        msg.textContent = '';
-                        msg.parentElement.querySelector('input').classList.remove('invalid');
-                    });
+                    document.querySelectorAll('input').forEach(clearError);
                     
                     const nameInput = form.querySelector('#name');
                     const emailInput = form.querySelector('#email');
@@ -159,13 +159,6 @@
                 });
             }
         });
-
-        // Helper function to show errors
-        function showError(input, message) {
-            const errorElement = input.parentElement.querySelector('.error-message');
-            errorElement.textContent = message;
-            input.classList.add('invalid');
-        }
     </script>
 </body>
 </html> 

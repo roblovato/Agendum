@@ -20,6 +20,12 @@
         </div>
     </div>
 
+    <!-- Add loading overlay -->
+    <div class="loading-overlay" style="display: none;">
+        <div class="loading-spinner"></div>
+        <div class="loading-message">Loading...</div>
+    </div>
+
     <div class="modal" id="newEventModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -177,24 +183,9 @@
         </div>
     </div>
 
-    <button class="nav-button primary" onclick="showNewEventModal()">
-        <span class="icon">+</span>
-        <span class="button-text">New Event</span>
-    </button>
-
+    <script src="scripts/scripts.js"></script>
     <script type="module">
-        import { 
-            createHeader, 
-            createUserNav, 
-            createLoadingOverlay
-        } from './scripts/components.js';
-
-        import { 
-            loadAndDisplayEvents, 
-            loadAndDisplayContacts, 
-            initializeDateTypeHandler, 
-            loadInviteesList 
-        } from './scripts/scripts.js';
+        import { createHeader, createUserNav, createLoadingOverlay } from './scripts/components.js';
 
         // Function to determine current view
         function getCurrentView() {
@@ -214,8 +205,10 @@
             const mainContent = document.querySelector('.main-content');
             if (!mainContent) return;
 
-            // Show loading state
-            showLoading();
+            const loadingOverlay = document.querySelector('.loading-overlay');
+            if (loadingOverlay) {
+                loadingOverlay.classList.add('show');
+            }
 
             try {
                 // Clear existing content
@@ -231,15 +224,22 @@
                 console.error('Error rendering view:', error);
                 mainContent.innerHTML = '<div class="error">Error loading content</div>';
             } finally {
-                hideLoading();
+                if (loadingOverlay) {
+                    loadingOverlay.classList.remove('show');
+                }
             }
         }
 
-        // Initialize the dashboard
         document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const app = document.querySelector('#app');
                 const mainContent = document.querySelector('.main-content');
+                const loadingOverlay = document.querySelector('.loading-overlay');
+
+                // Show loading overlay during initialization
+                if (loadingOverlay) {
+                    loadingOverlay.classList.add('show');
+                }
 
                 // Create and append header
                 const header = createHeader();
@@ -247,22 +247,17 @@
                     app.insertBefore(header, mainContent);
                 }
 
-                // Create loading overlay HTML string
-                const loadingOverlay = `
-                    <div class="loading-overlay" style="display: none;">
-                        <div class="loading-spinner"></div>
-                        <div class="loading-message">Loading...</div>
-                    </div>
-                `;
-
-                // Add loading overlay to body using insertAdjacentHTML
-                document.body.insertAdjacentHTML('beforeend', loadingOverlay);
-
                 // Load events view directly
                 await renderView('events');
 
             } catch (error) {
                 console.error('Error initializing dashboard:', error);
+            } finally {
+                // Hide loading overlay after initialization
+                const loadingOverlay = document.querySelector('.loading-overlay');
+                if (loadingOverlay) {
+                    loadingOverlay.classList.remove('show');
+                }
             }
         });
 
@@ -271,6 +266,16 @@
             renderView(getCurrentView());
         });
     </script>
-    <script type="module" src="scripts/scripts.js"></script>
+
+    <!-- SVG Icons -->
+    <script>
+        const editIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path fill="#4b4b4d" d="M22.1,3.8L5.8,20.1l-1.8,7.9,7.9-1.8L28.2,9.9l-6.1-6.1Z"/></svg>';
+
+        const deleteIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path fill="#4b4b4d" d="M25.2,10.5c0-1.5-1.2-2.8-2.8-2.8h-3.2v-.8c0-1.2-1-2.2-2.2-2.2h-2c-1.2,0-2.2,1-2.2,2.2v.8h-3.2c-1.5,0-2.8,1.2-2.8,2.8v1.8h2v15h14.5v-15h2v-1.8Z"/></svg>';
+
+        const viewIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path fill="#4b4b4d" d="M16,20.2c-2.3,0-4.2-1.9-4.2-4.2s1.9-4.2,4.2-4.2s4.2,1.9,4.2,4.2S18.3,20.2,16,20.2z M16,13.2c-1.5,0-2.8,1.2-2.8,2.8s1.2,2.8,2.8,2.8s2.8-1.2,2.8-2.8S17.5,13.2,16,13.2z"/></svg>';
+
+        const chevronIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path fill="#4b4b4d" d="M12.8,25l-1.1-1l8-8l-8-8l1.1-1l9,9L12.8,25z"/></svg>';
+    </script>
 </body>
 </html> 

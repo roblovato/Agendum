@@ -3,15 +3,6 @@ window.selectUser = selectUser;
 window.previousMonth = previousMonth;
 window.nextMonth = nextMonth;
 
-// Add export statements at the top of the file
-export { 
-    loadAndDisplayEvents, 
-    loadAndDisplayContacts, 
-    initializeDateTypeHandler, 
-    loadInviteesList,
-    isMobileViewport
-};
-
 // Add this function near the top of the file with other utility functions
 function isMobileViewport() {
     // Check if viewport width is less than 768px (common mobile breakpoint)
@@ -81,24 +72,6 @@ function updateValidationUI(input, isValid, message) {
         input.classList.remove('valid');
         errorElement.textContent = message;
         errorElement.style.display = 'block';
-        
-        // Position the tooltip
-        const inputRect = input.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
-        
-        // Check if tooltip would go off screen
-        const tooltipRight = containerRect.right + 220; // 200px max-width + 20px padding
-        if (tooltipRight > window.innerWidth) {
-            errorElement.style.left = 'auto';
-            errorElement.style.right = 'calc(100% + 10px)';
-            errorElement.style.transform = 'translateY(-50%)';
-            errorElement.style.setProperty('--tooltip-direction', 'left');
-        } else {
-            errorElement.style.left = 'calc(100% + 10px)';
-            errorElement.style.right = 'auto';
-            errorElement.style.transform = 'translateY(-50%)';
-            errorElement.style.setProperty('--tooltip-direction', 'right');
-        }
     } else {
         input.classList.add('valid');
         input.classList.remove('invalid');
@@ -250,10 +223,14 @@ function handleSignedOutUser() {
 function initializeAuth() {
     firebase.auth().onAuthStateChanged((user) => {
         try {
+            const currentPath = window.location.pathname;
+            
             if (user) {
-                // Handle page-specific initialization
-                const currentPath = window.location.pathname;
-                if (currentPath.includes('signin.html') || currentPath === '/' || currentPath.endsWith('index.html')) {
+                // User is signed in
+                if (currentPath.includes('signin.html') || 
+                    currentPath.includes('signup.html') || 
+                    currentPath === '/' || 
+                    currentPath.endsWith('index.html')) {
                     window.location.href = 'dashboard.html';
                 } else if (currentPath.includes('dashboard.html')) {
                     initializeDashboard(user);
@@ -261,8 +238,10 @@ function initializeAuth() {
             } else {
                 // User is signed out
                 console.log('🔴 User is signed out');
-                if (!window.location.pathname.includes('signin.html') && 
-                    !window.location.pathname.includes('index.html')) {
+                // Only redirect to signin if on protected pages
+                if (!currentPath.includes('signin.html') && 
+                    !currentPath.includes('signup.html') && 
+                    !currentPath.includes('index.html')) {
                     window.location.href = 'signin.html';
                 }
             }
@@ -306,7 +285,7 @@ async function initializeDashboard(user) {
             logoutButton.addEventListener('click', () => {
                 firebase.auth().signOut()
                     .then(() => {
-                        window.location.href = 'signin.html';
+                        window.location.href = 'index.html';
                     })
                     .catch((error) => {
                         console.error('Error signing out:', error);
@@ -947,7 +926,7 @@ async function addNewEvent(eventData) {
     }
 }
 
-// Update initializeFormValidation to handle form submission correctly
+// Update initializeFormValidation to handle case when pickers is null
 function initializeFormValidation() {
     const form = document.querySelector('#newEventModal form');
     if (!form) return;
@@ -956,29 +935,10 @@ function initializeFormValidation() {
     const newForm = form.cloneNode(true);
     form.parentNode.replaceChild(newForm, form);
 
-    // Initialize flatpickr date pickers
-    if (typeof flatpickr !== 'undefined') {
-        const startDatePicker = flatpickr("#startDate", {
-            enableTime: false,
-            dateFormat: "Y-m-d",
-            minDate: "today",
-            onChange: function(selectedDates, dateStr) {
-                const endDateInput = document.querySelector('#endDate');
-                if (endDateInput._flatpickr) {
-                    endDateInput._flatpickr.set('minDate', dateStr);
-                }
-                validateField(document.querySelector('#startDate'));
-            }
-        });
-
-        const endDatePicker = flatpickr("#endDate", {
-            enableTime: false,
-            dateFormat: "Y-m-d",
-            minDate: "today",
-            onChange: function(selectedDates, dateStr) {
-                validateField(document.querySelector('#endDate'));
-            }
-        });
+    // Initialize date pickers only if we're on a page with date inputs
+    const dateInputs = newForm.querySelectorAll('input[type="date"]');
+    if (dateInputs.length > 0) {
+        const pickers = initializeDatePickers();
     }
 
     // Add single form submission handler
@@ -1224,6 +1184,21 @@ window.loadAndDisplayContacts = loadAndDisplayContacts;
 
 // Update the date picker initialization function
 function initializeDatePickers() {
+    // First, find the input elements
+    const startDateInput = document.querySelector("#startDate");
+    const endDateInput = document.querySelector("#endDate");
+    const eventDateInput = document.querySelector("#eventDate");
+
+    // If none of the date inputs exist, return early
+    if (!startDateInput && !endDateInput && !eventDateInput) {
+        return null;
+    }
+
+    // Destroy existing instances if they exist
+    if (startDateInput?._flatpickr) startDateInput._flatpickr.destroy();
+    if (endDateInput?._flatpickr) endDateInput._flatpickr.destroy();
+    if (eventDateInput?._flatpickr) eventDateInput._flatpickr.destroy();
+
     const today = new Date();
     const defaultOptions = {
         enableTime: false,
@@ -1235,36 +1210,43 @@ function initializeDatePickers() {
         }
     };
 
-    // Initialize single date picker
-    const eventDatePicker = flatpickr("#eventDate", {
-        ...defaultOptions,
-        defaultDate: today,
-        altInput: true,
-        altFormat: "F j, Y",
-        dateFormat: "Y-m-d",
-    });
+    let pickers = {};
 
-    // Initialize date range pickers
-    const startDatePicker = flatpickr("#startDate", {
-        ...defaultOptions,
-        altInput: true,
-        altFormat: "F j, Y",
-        dateFormat: "Y-m-d",
-        onChange: function(selectedDates) {
-            if (selectedDates[0]) {
-                endDatePicker.set('minDate', selectedDates[0]);
+    // Only initialize pickers for elements that exist
+    if (eventDateInput) {
+        pickers.eventDatePicker = flatpickr("#eventDate", {
+            ...defaultOptions,
+            defaultDate: today,
+            altInput: true,
+            altFormat: "F j, Y",
+            dateFormat: "Y-m-d",
+        });
+    }
+
+    if (startDateInput) {
+        pickers.startDatePicker = flatpickr("#startDate", {
+            ...defaultOptions,
+            altInput: true,
+            altFormat: "F j, Y",
+            dateFormat: "Y-m-d",
+            onChange: function(selectedDates) {
+                if (selectedDates[0] && pickers.endDatePicker) {
+                    pickers.endDatePicker.set('minDate', selectedDates[0]);
+                }
             }
-        }
-    });
+        });
+    }
 
-    const endDatePicker = flatpickr("#endDate", {
-        ...defaultOptions,
-        altInput: true,
-        altFormat: "F j, Y",
-        dateFormat: "Y-m-d",
-    });
+    if (endDateInput) {
+        pickers.endDatePicker = flatpickr("#endDate", {
+            ...defaultOptions,
+            altInput: true,
+            altFormat: "F j, Y",
+            dateFormat: "Y-m-d",
+        });
+    }
 
-    return { eventDatePicker, startDatePicker, endDatePicker };
+    return pickers;
 }
 
 // Update the initializeDateTypeHandler function
@@ -1445,168 +1427,149 @@ async function loadAndDisplayEvents() {
         const eventsContainer = document.createElement('div');
         eventsContainer.className = 'events-container';
 
-        if (eventsSnapshot.empty) {
-            eventsContainer.innerHTML = `
-                <div class="no-events">
-                    <p>No events found</p>
+        // Add header
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'events-header';
+        headerDiv.innerHTML = `
+            <div class="event-col">Event</div>
+            <div class="date-col">Start Date</div>
+            <div class="date-col">End Date</div>
+            <div class="actions-col">Actions</div>
+        `;
+        eventsContainer.appendChild(headerDiv);
+
+        // Create events list container
+        const eventsList = document.createElement('div');
+        eventsList.className = 'events-list';
+        eventsContainer.appendChild(eventsList);
+
+        // Add events
+        eventsSnapshot.forEach(doc => {
+            const event = doc.data();
+            // console.log('Event', event);
+            
+            const eventDiv = document.createElement('div');
+            eventDiv.className = 'event-row';
+
+            const editIcon = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 32 32"><path fill="#4b4b4d" d="M22.1,3.8L5.8,20.1l-1.8,7.9,7.9-1.8L28.2,9.9l-6.1-6.1ZM26.1,9.9l-1.4,1.4-3.9-3.9,1.4-1.4,3.9,3.9ZM10.2,22.9l9.9-9.9,1.4,1.4-9.9,9.9-1.4-1.4ZM7.7,20.4l9.9-9.9,1.4,1.4-9.9,9.9-1.4-1.4ZM18.7,9.4l.9-.9,3.9,3.9-.9.9-3.9-3.9ZM7,21.8l3.2,3.2-4.2,1,1-4.2Z"/></svg>';
+            const deleteIcon = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 32 32"><rect fill="#4b4b4d" x="12.8" y="14" width="1.5" height="10"/><rect fill="#4b4b4d" x="17.8" y="14" width="1.5" height="10"/><path fill="#4b4b4d" d="M25.2,10.5c0-1.5-1.2-2.8-2.8-2.8h-3.2v-.8c0-1.2-1-2.2-2.2-2.2h-2c-1.2,0-2.2,1-2.2,2.2v.8h-3.2c-1.5,0-2.8,1.2-2.8,2.8v1.8h2v15h14.5v-15h2v-1.8ZM14.2,7c0-.4.3-.8.8-.8h2c.4,0,.8.3.8.8.8v.8h-3.5v-.8ZM21.8,25.8h-11.5v-13.5h11.5v13.5ZM23.8,10.8h-15.5v-.3c0-.7.6-1.2,1.2-1.2h13c.7,0,1.2.6,1.2,1.2v.3Z"/></svg>';
+            const viewIcon = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 32 32"><path fill="#4b4b4d" d="M16,20.2c-2.3,0-4.2-1.9-4.2-4.2s1.9-4.2,4.2-4.2,4.2,1.9,4.2,4.2-1.9,4.2-4.2,4.2ZM16,13.2c-1.5,0-2.8,1.2-2.8,2.8s1.2,2.8,2.8,2.8,2.8-1.2,2.8-2.8-1.2-2.8-2.8-2.8Z"/><path fill="#4b4b4d" d="M16,23.2h0c-2.7,0-5.3-1.1-7.2-3l-4.3-4.2,4.3-4.2c1.9-1.9,4.5-3,7.2-3s5.3,1.1,7.2,3l4.3,4.2-4.3,4.2c-1.9,1.9-4.5,3-7.2,3ZM6.5,16l3.4,3.2c1.7,1.6,3.9,2.6,6.2,2.6s4.5-.9,6.2-2.6l3.4-3.2-3.4-3.2c-1.7-1.6-3.9-2.6-6.2-2.6s-4.5.9-6.2,2.6l-3.4,3.2Z"/></svg>';
+            const chevronIcon = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 32 32"><polygon fill="#4b4b4d" points="12.8 25 11.7 24 19.7 16 11.7 8 12.8 7 21.8 16 12.8 25"/></svg>';
+            
+            eventDiv.innerHTML = `
+                <div class="event-summary">
+                    <div class="event-col">
+                        <span class="expand-icon">${chevronIcon}</span>
+                        ${event.title}
+                    </div>
+                    <div class="date-col" data-date="${event.startDate}">${formatDate(event.startDate)}</div>
+                    <div class="date-col" data-date="${event.endDate}">${formatDate(event.endDate)}</div>
+                    <div class="actions-col">
+                        <button class="button view-button" data-id="${doc.id}">
+                            <span class="icon">${viewIcon}</span>
+                        </button>
+                        <button class="button edit-button" data-id="${doc.id}">
+                            <span class="icon">${editIcon}</span>
+                        </button>
+                        <button class="button delete-button" data-id="${doc.id}">
+                            <span class="icon">${deleteIcon}</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="event-details">
+                    <div class="details-grid">
+                        ${window.innerWidth <= 768 ? `
+                            <div class="detail-section dates">
+                                <div>
+                                    <h4>Start Date</h4>
+                                    <p>${formatDate(event.startDate)}</p>
+                                </div>
+                                <div>
+                                    <h4>End Date</h4>
+                                    <p>${formatDate(event.endDate)}</p>
+                                </div>
+                            </div>
+                        ` : ''}
+                        <div class="detail-section">
+                            <h4>Description</h4>
+                            <p>${event.description || 'No description provided.'}</p>
+                        </div>
+                        <div class="detail-section">
+                            <h4>Location</h4>
+                            <p>${event.location}</p>
+                        </div>
+                        <div class="detail-section">
+                            <h4>Status</h4>
+                            <p class="event-status ${getEventStatus(event.startDate)}">${getEventStatus(event.startDate)}</p>
+                        </div>
+                        <div class="detail-section">
+                            <h4>Responses</h4>
+                            <div class="responses-info">
+                                <p class="responses-count">${Array.isArray(event.responses) ? event.responses.length : 0} people invited</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `;
-        } else {
-            // Add header
-            const headerDiv = document.createElement('div');
-            headerDiv.className = 'events-header';
-            headerDiv.innerHTML = `
-                <div class="event-col">Event</div>
-                <div class="date-col">Start Date</div>
-                <div class="date-col">End Date</div>
-                <div class="actions-col">Actions</div>
-            `;
-            eventsContainer.appendChild(headerDiv);
 
-            // Add events
-            eventsSnapshot.forEach(doc => {
-                const event = doc.data();
-                // console.log('Event', event);
-                
-                const eventDiv = document.createElement('div');
-                eventDiv.className = 'event-row';
+            // Update click handler for expansion
+            const eventCol = eventDiv.querySelector('.event-summary');
+            const detailsDiv = eventDiv.querySelector('.event-details');
+            const expandIcon = eventCol.querySelector('.expand-icon');
+            
+            eventCol.addEventListener('click', async (e) => {
+                if (!e.target.closest('.actions-col')) {
+                    // Get availability data from public_events collection
+                    try {
+                        const publicEventRef = await db.collection('public_events').doc(doc.id).get();
+                        const publicEventData = publicEventRef.data() || {};
+                        const responsesCount = Object.keys(publicEventData?.responses || {}).length;
 
-                const editIcon = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 32 32"><path fill="#4b4b4d" d="M22.1,3.8L5.8,20.1l-1.8,7.9,7.9-1.8L28.2,9.9l-6.1-6.1ZM26.1,9.9l-1.4,1.4-3.9-3.9,1.4-1.4,3.9,3.9ZM10.2,22.9l9.9-9.9,1.4,1.4-9.9,9.9-1.4-1.4ZM7.7,20.4l9.9-9.9,1.4,1.4-9.9,9.9-1.4-1.4ZM18.7,9.4l.9-.9,3.9,3.9-.9.9-3.9-3.9ZM7,21.8l3.2,3.2-4.2,1,1-4.2Z"/></svg>';
-                const deleteIcon = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 32 32"><rect fill="#4b4b4d" x="12.8" y="14" width="1.5" height="10"/><rect fill="#4b4b4d" x="17.8" y="14" width="1.5" height="10"/><path fill="#4b4b4d" d="M25.2,10.5c0-1.5-1.2-2.8-2.8-2.8h-3.2v-.8c0-1.2-1-2.2-2.2-2.2h-2c-1.2,0-2.2,1-2.2,2.2v.8h-3.2c-1.5,0-2.8,1.2-2.8,2.8v1.8h2v15h14.5v-15h2v-1.8ZM14.2,7c0-.4.3-.8.8-.8h2c.4,0,.8.3.8.8v.8h-3.5v-.8ZM21.8,25.8h-11.5v-13.5h11.5v13.5ZM23.8,10.8h-15.5v-.3c0-.7.6-1.2,1.2-1.2h13c.7,0,1.2.6,1.2,1.2v.3Z"/></svg>';
-                const viewIcon = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 32 32"><path fill="#4b4b4d" d="M16,20.2c-2.3,0-4.2-1.9-4.2-4.2s1.9-4.2,4.2-4.2,4.2,1.9,4.2,4.2-1.9,4.2-4.2,4.2ZM16,13.2c-1.5,0-2.8,1.2-2.8,2.8s1.2,2.8,2.8,2.8,2.8-1.2,2.8-2.8-1.2-2.8-2.8-2.8Z"/><path fill="#4b4b4d" d="M16,23.2h0c-2.7,0-5.3-1.1-7.2-3l-4.3-4.2,4.3-4.2c1.9-1.9,4.5-3,7.2-3s5.3,1.1,7.2,3l4.3,4.2-4.3,4.2c-1.9,1.9-4.5,3-7.2,3ZM6.5,16l3.4,3.2c1.7,1.6,3.9,2.6,6.2,2.6s4.5-.9,6.2-2.6l3.4-3.2-3.4-3.2c-1.7-1.6-3.9-2.6-6.2-2.6s-4.5.9-6.2,2.6l-3.4,3.2Z"/></svg>';
-                const chevronIcon = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 32 32"><polygon fill="#4b4b4d" points="12.8 25 11.7 24 19.7 16 11.7 8 12.8 7 21.8 16 12.8 25"/></svg>';
-                
-                eventDiv.innerHTML = `
-                    <div class="event-summary">
-                        <div class="event-col">
-                            <span class="expand-icon">${chevronIcon}</span>
-                            ${event.title}
-                        </div>
-                        <div class="date-col" data-date="${event.startDate}">${formatDate(event.startDate)}</div>
-                        <div class="date-col" data-date="${event.endDate}">${formatDate(event.endDate)}</div>
-                        <div class="actions-col">
-                            <button class="button view-button" data-id="${doc.id}">
-                                <span class="icon">${viewIcon}</span>
-                            </button>
-                            <button class="button edit-button" data-id="${doc.id}">
-                                <span class="icon">${editIcon}</span>
-                            </button>
-                            <button class="button delete-button" data-id="${doc.id}">
-                                <span class="icon">${deleteIcon}</span>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="event-details">
-                        <div class="details-grid">
-                            ${window.innerWidth <= 768 ? `
-                                <div class="detail-section dates">
-                                    <div>
-                                        <h4>Start Date</h4>
-                                        <p>${formatDate(event.startDate)}</p>
-                                    </div>
-                                    <div>
-                                        <h4>End Date</h4>
-                                        <p>${formatDate(event.endDate)}</p>
-                                    </div>
-                                </div>
-                            ` : ''}
-                            <div class="detail-section">
-                                <h4>Description</h4>
-                                <p>${event.description || 'No description provided.'}</p>
-                            </div>
-                            <div class="detail-section">
-                                <h4>Location</h4>
-                                <p>${event.location}</p>
-                            </div>
-                            <div class="detail-section">
-                                <h4>Status</h4>
-                                <p class="event-status ${getEventStatus(event.startDate)}">${getEventStatus(event.startDate)}</p>
-                            </div>
-                            <div class="detail-section">
-                                <h4>Responses</h4>
-                                <div class="responses-info">
-                                    <p class="responses-count">${Array.isArray(event.responses) ? event.responses.length : 0} people invited</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-
-                // Update click handler for expansion
-                const eventCol = eventDiv.querySelector('.event-summary');
-                const detailsDiv = eventDiv.querySelector('.event-details');
-                const expandIcon = eventDiv.querySelector('.expand-icon');
-                
-                eventCol.addEventListener('click', async (e) => {
-                    if (!e.target.closest('.actions-col')) {
-                        // Get availability data from public_events collection
-                        try {
-                            const publicEventRef = await db.collection('public_events').doc(doc.id).get();
-                            const publicEventData = publicEventRef.data() || {};
-                            const responsesCount = Object.keys(publicEventData?.responses || {}).length;
-
-                            // console.log('Event Details:', {
-                            //     title: event.title,
-                            //     description: event.description,
-                            //     location: event.location,
-                            //     startDate: event.startDate,
-                            //     endDate: event.endDate,
-                            //     invitees: event.invitees,
-                            //     status: getEventStatus(event.startDate),
-                            //     createdBy: event.createdBy,
-                            //     eventId: doc.id,
-                            //     publicEventExists: publicEventRef.exists,
-                            //     rawPublicEventData: publicEventData,
-                            //     availability: publicEventData?.availability || [],
-                            //     responses: publicEventData?.responses || {}
-                            // });
-
-                            // If clicking the currently open event, just close it
-                            if (currentlyOpenEvent === detailsDiv) {
-                                expandIcon.classList.remove('expanded');
-                                const grid = detailsDiv.querySelector('.details-grid');
-                                grid.style.maxHeight = '0';
-                                detailsDiv.style.display = 'none'; // Hide immediately
-                                detailsDiv.classList.remove('expanded');
-                                currentlyOpenEvent = null;
-                                return;
-                            }
-
-                            // Close the currently open event if there is one
-                            if (currentlyOpenEvent) {
-                                const previousIcon = currentlyOpenEvent.parentElement.querySelector('.expand-icon');
-                                previousIcon.classList.remove('expanded');
-                                currentlyOpenEvent.style.display = 'none'; // Hide immediately
-                                currentlyOpenEvent.classList.remove('expanded');
-                                const previousGrid = currentlyOpenEvent.querySelector('.details-grid');
-                                previousGrid.style.maxHeight = '0';
-                            }
-
-                            // Open the clicked event
-                            detailsDiv.style.display = 'block';
-                            // Force a reflow to enable the transition
-                            detailsDiv.offsetHeight;
+                        // If clicking the currently open event, just close it
+                        if (currentlyOpenEvent === detailsDiv) {
+                            expandIcon.classList.remove('expanded');
                             const grid = detailsDiv.querySelector('.details-grid');
-                            grid.style.maxHeight = '500px';
-                            const count = detailsDiv.querySelector('.responses-count');
-                            count.innerHTML = `${responsesCount}`;
-                            detailsDiv.classList.add('expanded');
-                            expandIcon.classList.add('expanded');
-                            currentlyOpenEvent = detailsDiv;
-
-                        } catch (error) {
-                            console.error('Error fetching availability data:', error);
+                            grid.style.maxHeight = '0';
+                            detailsDiv.style.display = 'none'; // Hide immediately
+                            detailsDiv.classList.remove('expanded');
+                            currentlyOpenEvent = null;
+                            return;
                         }
-                    }
-                });
 
-                eventsContainer.appendChild(eventDiv);
+                        // Close the currently open event if there is one
+                        if (currentlyOpenEvent) {
+                            const previousIcon = currentlyOpenEvent.parentElement.querySelector('.expand-icon');
+                            previousIcon.classList.remove('expanded');
+                            currentlyOpenEvent.style.display = 'none'; // Hide immediately
+                            currentlyOpenEvent.classList.remove('expanded');
+                            const previousGrid = currentlyOpenEvent.querySelector('.details-grid');
+                            previousGrid.style.maxHeight = '0';
+                        }
+
+                        // Open the clicked event
+                        detailsDiv.style.display = 'block';
+                        // Force a reflow to enable the transition
+                        detailsDiv.offsetHeight;
+                        const grid = detailsDiv.querySelector('.details-grid');
+                        grid.style.maxHeight = '500px';
+                        const count = detailsDiv.querySelector('.responses-count');
+                        count.innerHTML = `${responsesCount}`;
+                        detailsDiv.classList.add('expanded');
+                        expandIcon.classList.add('expanded');
+                        currentlyOpenEvent = detailsDiv;
+
+                    } catch (error) {
+                        console.error('Error fetching availability data:', error);
+                    }
+                }
             });
-        }
+
+            eventsList.appendChild(eventDiv);
+        });
 
         mainContent.appendChild(eventsContainer);
 
-        // Add event listeners for buttons`
+        // Add event listeners for buttons
         addEventButtonListeners(eventsContainer);
 
         // Add scroll handler after creating events container
@@ -1659,41 +1622,58 @@ window.addEventListener('resize', () => {
     
     // Update date columns
     const dateElements = document.querySelectorAll('.date-col');
-    dateElements.forEach(element => {
-        const originalDate = element.getAttribute('data-date');
-        if (originalDate) {
-            element.textContent = formatDate(originalDate);
-        }
-    });
+    if (dateElements) {
+        dateElements.forEach(element => {
+            if (element && element.hasAttribute('data-date')) {
+                const originalDate = element.getAttribute('data-date');
+                if (originalDate) {
+                    element.textContent = formatDate(originalDate);
+                }
+            }
+        });
+    }
 
     // Update details sections
-    document.querySelectorAll('.details-grid').forEach(grid => {
-        const datesSection = grid.querySelector('.detail-section.dates');
-        const event = grid.closest('.event-row');
-        
-        if (isMobile && !datesSection) {
-            // Add dates section if on mobile
-            const startDate = event.querySelector('.date-col[data-date]').getAttribute('data-date');
-            const endDate = event.querySelector('.date-col[data-date]:last-of-type').getAttribute('data-date');
+    const detailsGrids = document.querySelectorAll('.details-grid');
+    if (detailsGrids) {
+        detailsGrids.forEach(grid => {
+            if (!grid) return;
+
+            const datesSection = grid.querySelector('.detail-section.dates');
+            const event = grid.closest('.event-row');
+            if (!event) return;
             
-            const datesSectionHTML = `
-                <div class="detail-section dates">
-                    <div>
-                        <h4>Start Date</h4>
-                        <p>${formatDate(startDate)}</p>
-                    </div>
-                    <div>
-                        <h4>End Date</h4>
-                        <p>${formatDate(endDate)}</p>
-                    </div>
-                </div>
-            `;
-            grid.insertAdjacentHTML('afterbegin', datesSectionHTML);
-        } else if (!isMobile && datesSection) {
-            // Remove dates section if on desktop
-            datesSection.remove();
-        }
-    });
+            if (isMobile && !datesSection) {
+                // Add dates section if on mobile
+                const startDateCol = event.querySelector('.date-col[data-date]');
+                const endDateCol = event.querySelector('.date-col[data-date]:last-of-type');
+                
+                if (startDateCol && endDateCol) {
+                    const startDate = startDateCol.getAttribute('data-date');
+                    const endDate = endDateCol.getAttribute('data-date');
+                    
+                    if (startDate && endDate) {
+                        const datesSectionHTML = `
+                            <div class="detail-section dates">
+                                <div>
+                                    <h4>Start Date</h4>
+                                    <p>${formatDate(startDate)}</p>
+                                </div>
+                                <div>
+                                    <h4>End Date</h4>
+                                    <p>${formatDate(endDate)}</p>
+                                </div>
+                            </div>
+                        `;
+                        grid.insertAdjacentHTML('afterbegin', datesSectionHTML);
+                    }
+                }
+            } else if (!isMobile && datesSection) {
+                // Remove dates section if on desktop
+                datesSection.remove();
+            }
+        });
+    }
 });
 
 // Add this function to calculate event status
@@ -1810,7 +1790,7 @@ function showError(input, message) {
     const container = input.closest('.input-container');
     if (!container) return;
 
-    // Add invalid class to the original input
+    // Add invalid class to the input
     input.classList.add('invalid');
     input.classList.remove('valid');
     
@@ -1823,12 +1803,15 @@ function showError(input, message) {
         }
     }
     
+    // Find or create error message element
     let errorElement = container.querySelector('.error-message');
     if (!errorElement) {
         errorElement = document.createElement('div');
         errorElement.className = 'error-message';
         container.appendChild(errorElement);
     }
+    
+    // Set error message
     errorElement.textContent = message;
 }
 
@@ -1866,6 +1849,11 @@ function setValid(input) {
             visibleInput.classList.remove('invalid');
             visibleInput.classList.add('valid');
         }
+    }
+    
+    const errorElement = container.querySelector('.error-message');
+    if (errorElement) {
+        errorElement.textContent = '';
     }
 }
 

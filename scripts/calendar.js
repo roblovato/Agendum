@@ -85,18 +85,23 @@ export async function initializeCalendar() {
         // Create calendar structure
         calendarContainer.innerHTML = `
             <div class="calendar">
-                <div class="event-details">
-                    <h1>${eventData.title}</h1>
-                    <div class="event-info">
-                        <p><strong>Location:</strong> ${eventData.location}</p>
-                        <p><strong>Date:</strong> ${formatDate(eventData.startDate)} - ${formatDate(eventData.endDate)}</p>
-                        ${eventData.description ? `<p><strong>Description:</strong> ${eventData.description}</p>` : ''}
-                    </div>
-                </div>
                 <div class="calendar-header">
-                    <button class="prev-month">&lt;</button>
-                    <h2 id="monthYear"></h2>
-                    <button class="next-month">&gt;</button>
+                    <div class="header-left">
+                        <div class="logo">Agendum</div>
+                    </div>
+                    <div class="header-center">
+                        <button class="prev-month">&lt;</button>
+                        <h2 id="monthYear"></h2>
+                        <button class="next-month">&gt;</button>
+                    </div>
+                    <div class="header-right">
+                        <button class="view-event-details">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                <path d="M12 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0 8a5 5 0 0 1-5-5 5 5 0 0 1 5-5 5 5 0 0 1 5 5 5 5 0 0 1-5 5m0-12.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5z"/>
+                            </svg>
+                            Event Details
+                        </button>
+                    </div>
                 </div>
                 <div class="calendar-grid">
                     <div class="weekday-header">Sun</div>
@@ -108,10 +113,46 @@ export async function initializeCalendar() {
                     <div class="weekday-header">Sat</div>
                 </div>
             </div>
+
+            <!-- Event Details Modal -->
+            <div class="event-details-modal" id="eventDetailsModal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>${eventData.title}</h2>
+                        <button class="close-button">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="event-info">
+                            <p><strong>Location:</strong> ${eventData.location}</p>
+                            <p><strong>Date:</strong> ${formatDate(eventData.startDate)} - ${formatDate(eventData.endDate)}</p>
+                            ${eventData.description ? `<p><strong>Description:</strong> ${eventData.description}</p>` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
         `;
 
         // Add the save button and name input
         const { button: saveButton, nameInput } = addSaveButton();
+
+        // Initialize modal handlers
+        const modal = document.getElementById('eventDetailsModal');
+        const viewDetailsBtn = document.querySelector('.view-event-details');
+        const closeBtn = modal.querySelector('.close-button');
+
+        viewDetailsBtn.addEventListener('click', () => {
+            modal.classList.add('show');
+        });
+
+        closeBtn.addEventListener('click', () => {
+            modal.classList.remove('show');
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('show');
+            }
+        });
 
         // Load existing availabilities (no auth required per rules)
         try {
@@ -453,64 +494,33 @@ function addSaveButton() {
     const container = document.createElement('div');
     container.className = 'save-selections-container';
     
-    // Add name input container with error message
-    const inputContainer = document.createElement('div');
-    inputContainer.className = 'input-container';
-    
+    // Create name input
     const nameInput = document.createElement('input');
     nameInput.type = 'text';
-    nameInput.placeholder = 'Enter your name';
     nameInput.className = 'submitter-name-input';
+    nameInput.placeholder = 'Enter your name';
+    nameInput.required = true;
+    nameInput.autocomplete = 'name'; // Help with iOS autofill
     
-    const errorMessage = document.createElement('div');
-    errorMessage.className = 'error-message';
-    
-    inputContainer.appendChild(nameInput);
-    inputContainer.appendChild(errorMessage);
-    
+    // Create save button
     const button = document.createElement('button');
     button.className = 'save-selections-button';
-    button.textContent = 'Submit Available Dates';
-    button.style.display = 'none';
+    button.textContent = 'Save Availability';
+    button.disabled = true; // Initially disabled until name is entered
     
-    button.addEventListener('click', async (e) => {
-        e.preventDefault();
-        
-        // Clear previous error
-        clearError(nameInput);
-        
-        // Validate name
-        if (!nameInput.value.trim()) {
-            showError(nameInput, 'Please enter your name');
-            return;
-        }
-        
-        // Validate date selections
-        if (selectedDates.size === 0) {
-            showError(nameInput, 'Please select at least one date');
-            return;
-        }
-        
-        await saveSelectedDates(nameInput.value.trim());
-    });
-    
-    // Add input validation on blur
-    nameInput.addEventListener('blur', () => {
-        if (!nameInput.value.trim()) {
-            showError(nameInput, 'Please enter your name');
-        } else {
-            setValid(nameInput);
-        }
-    });
-    
-    // Clear error on input
+    // Add input event listener to enable/disable button
     nameInput.addEventListener('input', () => {
-        clearError(nameInput);
+        button.disabled = !nameInput.value.trim();
     });
     
-    container.appendChild(inputContainer);
+    // Add elements to container
+    container.appendChild(nameInput);
     container.appendChild(button);
-    document.querySelector('.calendar').appendChild(container);
+    
+    // Add container after calendar
+    const calendar = document.querySelector('.calendar');
+    calendar.parentNode.insertBefore(container, calendar.nextSibling);
+    
     return { button, nameInput };
 }
 

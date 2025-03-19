@@ -9,4 +9,44 @@
     color: @text-color;
     margin-bottom: @spacing-large;
     text-align: center;
-} 
+}
+
+/* Auth form specific styles */
+.auth-container {
+    max-width: 400px;
+    margin: @spacing-large auto;
+    padding: @spacing-large;
+    background: #fff;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px fade(@shadow-color, 10%);
+
+    h1 {
+        margin-bottom: @spacing-large;
+        color: @primary-color;
+        text-align: center;
+    }
+
+    .form-group {
+        margin-bottom: @spacing-large;
+    }
+
+    .input-container {
+        margin-top: @spacing-small;
+    }
+
+    .buttons, .login-link {
+        text-align: center;
+    }
+}
+
+/* Add styles for auth links */
+.auth-link {
+    color: @primary-color;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all @transition-duration;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}

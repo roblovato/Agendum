@@ -47,7 +47,12 @@ export function createUserNav(user) {
     logoutButton.className = 'logout-button';
     logoutButton.textContent = 'Logout';
     logoutButton.onclick = () => {
-        firebase.auth().signOut();
+        firebase.auth().signOut().then(() => {
+            window.location.href = 'index.html';
+        }).catch((error) => {
+            console.error('Error signing out:', error);
+            alert('Error signing out. Please try again.');
+        });
     };
 
     userNav.appendChild(userName);

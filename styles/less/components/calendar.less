@@ -1,0 +1,485 @@
+// Calendar variables
+@calendar-bg: white;
+@calendar-header-bg: #f8f9fa;
+@calendar-border: #eee;
+@calendar-text: #2c3e50;
+@calendar-primary: #2196f3;
+@calendar-primary-hover: #1976d2;
+@calendar-selected-bg: #e3f2fd;
+@calendar-hover-bg: #f8f9fa;
+@calendar-disabled-opacity: 0.7;
+
+// Calendar styles
+.calendar-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch; // Improve iOS scrolling
+}
+
+.calendar {
+    width: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: @calendar-bg;
+    overflow: hidden;
+    min-height: 0; // Allow calendar to shrink
+
+    &-header {
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: @calendar-header-bg;
+        border-bottom: 1px solid @calendar-border;
+        flex-shrink: 0;
+
+        .header-left {
+            flex: 1;
+        }
+
+        .header-center {
+            flex: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+
+            h2 {
+                margin: 0;
+                // min-width: 180px;
+                text-align: center;
+                font-size: 1.2rem;
+                color: @calendar-text;
+            }
+
+            button {
+                background: none;
+                border: 1px solid @calendar-border;
+                font-size: 1.2rem;
+                color: @calendar-text;
+                cursor: pointer;
+                padding: 4px 12px;
+                border-radius: 4px;
+                transition: all 0.2s ease;
+
+                &:hover {
+                    background: @calendar-hover-bg;
+                    border-color: @calendar-primary;
+                    color: @calendar-primary;
+                }
+            }
+        }
+
+        .header-right {
+            flex: 1;
+            display: flex;
+            justify-content: flex-end;
+
+            .view-event-details {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px 16px;
+                background: @calendar-primary;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 0.9rem;
+                transition: all 0.2s ease;
+
+                &:hover {
+                    background: @calendar-primary-hover;
+                    transform: translateY(-1px);
+                }
+
+                svg {
+                    width: 18px;
+                    height: 18px;
+                    fill: currentColor;
+                }
+            }
+        }
+    }
+
+    &-grid {
+        flex: 1;
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        grid-template-rows: auto repeat(6, 1fr);
+        gap: 4px;
+        padding: 4px;
+        background: @calendar-border;
+        overflow-y: auto;
+    }
+}
+
+// Event details modal styles
+.event-details-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+
+    &.show {
+        display: flex;
+    }
+
+    .modal-content {
+        background: @calendar-bg;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 600px;
+        max-height: 90vh;
+        overflow-y: auto;
+        position: relative;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px;
+        border-bottom: 1px solid @calendar-border;
+
+        h2 {
+            margin: 0;
+            color: @calendar-text;
+            font-size: 1.5rem;
+        }
+
+        .close-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            padding: 4px 8px;
+            line-height: 1;
+
+            &:hover {
+                color: @calendar-text;
+            }
+        }
+    }
+
+    .modal-body {
+        padding: 20px;
+
+        .event-info {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+
+            p {
+                margin: 0;
+                color: @calendar-text;
+
+                strong {
+                    color: #666;
+                    margin-right: 8px;
+                }
+            }
+        }
+    }
+}
+
+// Event details button styles
+.view-event-details {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: @calendar-primary;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+
+    &:hover {
+        background: @calendar-primary-hover;
+    }
+
+    svg {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+    }
+}
+
+.calendar-event-details {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.weekday-header {
+    background: @calendar-bg;
+    padding: 0.75rem;
+    text-align: center;
+    font-weight: bold;
+    height: 2rem;
+    line-height: 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    border-bottom: 1px solid @calendar-border;
+}
+
+.day {
+    background: @calendar-bg;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    min-height: 100px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+
+    &:not(.empty):hover {
+        background-color: @calendar-hover-bg;
+    }
+
+    &.empty {
+        min-height: 0;
+        height: 100%;
+        background: @calendar-hover-bg;
+        cursor: default;
+    }
+
+    &.selected {
+        background: @calendar-selected-bg;
+        border-color: @calendar-primary;
+    }
+
+    &.disabled {
+        cursor: not-allowed;
+        opacity: @calendar-disabled-opacity;
+    }
+
+    &.has-event {
+        background: @calendar-selected-bg;
+
+        &.selected {
+            background: #5bc653;
+        }
+    }
+
+    // User states
+    &.user1 { border-color: rgba(255, 0, 0, 0.3); }
+    &.user2 { border-color: rgba(0, 0, 255, 0.3); }
+    &.user3 { border-color: rgba(0, 255, 0, 0.3); }
+
+    &.user1.user2,
+    &.user1.user3,
+    &.user2.user3 {
+        border-width: 2px;
+        border-color: #9b59b6;
+    }
+
+    &.user1.user2.user3 {
+        border-width: 3px;
+    }
+}
+
+.date-number {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    font-size: 0.9em;
+    color: #666;
+}
+
+.event-title {
+    font-size: 0.8em;
+    color: @calendar-primary;
+    margin-top: 1.5rem;
+    cursor: pointer;
+}
+
+.availability {
+    &-names {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2px;
+        margin-top: 0.5rem;
+    }
+
+    &-name {
+        font-size: 0.7em;
+        padding: 2px 4px;
+        border-radius: 2px;
+        color: white;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+}
+
+.save-selections-container {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1rem;
+    background: @calendar-bg;
+    border-top: 1px solid @calendar-border;
+    z-index: 10;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+
+    .submitter-name-input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid @calendar-border;
+        border-radius: 4px;
+        margin-bottom: 12px;
+        font-size: 16px; // Prevent iOS zoom on focus
+        -webkit-appearance: none; // Fix iOS input styling
+    }
+
+    .save-selections-button {
+        width: 100%;
+        padding: 12px;
+        background: @calendar-primary;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: all 0.2s;
+
+        &:hover {
+            background: @calendar-primary-hover;
+        }
+    }
+}
+
+// Date selection styles
+.date-selection {
+    &-container {
+        margin-bottom: 20px;
+    }
+
+    &-wrapper {
+        display: flex;
+        gap: 20px;
+        width: 100%;
+    }
+}
+
+.date-input-group {
+    flex: 1;
+
+    label {
+        display: block;
+        margin-bottom: 8px;
+        color: @calendar-text;
+        font-weight: 600;
+    }
+}
+
+// Flatpickr customization
+.flatpickr {
+    &-calendar {
+        background: @calendar-bg;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+    }
+
+    &-day {
+        &.selected {
+            background: @calendar-primary;
+            border-color: @calendar-primary;
+
+            &:hover {
+                background: @calendar-primary-hover;
+            }
+        }
+    }
+
+    &-input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid @calendar-border;
+        border-radius: 8px;
+        font-size: 1em;
+        box-sizing: border-box;
+        cursor: pointer;
+
+        &:focus {
+            outline: none;
+            border-color: @calendar-primary;
+        }
+    }
+}
+
+// Date picker container styles
+.date-picker-container {
+    margin-bottom: 1rem;
+}
+
+#singleDateGroup, #dateRangeGroup {
+    display: none;
+
+    &.active {
+        display: block;
+    }
+}
+
+// Mobile responsive styles
+@media (max-width: 768px) {
+    .calendar-container {
+        padding-bottom: env(safe-area-inset-bottom); // Handle iOS safe areas
+    }
+
+    .calendar {
+        &-grid {
+            gap: 2px;
+            padding: 2px;
+        }
+
+        &-header {
+            padding: 0.75rem;
+        }
+    }
+
+    .save-selections-container {
+        padding: 1rem;
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    }
+
+    .day {
+        min-height: 60px; // Smaller height on mobile
+        padding: 0.5rem;
+    }
+
+    .date-number {
+        font-size: 0.8em;
+    }
+
+    .event-title {
+        font-size: 0.7em;
+        margin-top: 1rem;
+    }
+
+    .availability-name {
+        font-size: 0.6em;
+        padding: 1px 3px;
+    }
+}

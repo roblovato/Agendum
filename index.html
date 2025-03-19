@@ -20,15 +20,13 @@
         // Initialize the app
         document.getElementById('app').innerHTML = `
             <div class="container landing-container">
-                <h1 class="landing-title">Agendum</h1>
+                <h1 class="landing-title logo">Agendum</h1>
                 <p class="description">
-                    Simplify your life with Agendum, the intelligent scheduling aggregator that brings all your calendars together. 
-                    Seamlessly sync your work, personal, and shared calendars in one intuitive platform. 
-                    Never miss an important event or double-book yourself again.
+                    Use this tool to schedule events with anyone. You create the event with all the details, then share the link with others. Your invitees will get a link to a calendar where they choose their availability. After they are done you can choose your event date based on the most availability. 
                 </p>
                 <div class="button-container">
-                    <a href="signup.html" class="button signup">Sign Up</a>
-                    <a href="signin.html" class="button signin">Sign In</a>
+                    <a href="signup.html" class="button button button-base primary">Sign Up</a>
+                    <a href="signin.html" class="button button button-base primary">Sign In</a>
                 </div>
             </div>
         `;
@@ -38,6 +36,14 @@
 
         // Add Firebase scripts
         document.body.insertAdjacentHTML('beforeend', createAuthScripts());
+
+        // Hide loading overlay after initialization
+        document.addEventListener('DOMContentLoaded', () => {
+            const loadingOverlay = document.querySelector('.loading-overlay');
+            if (loadingOverlay) {
+                loadingOverlay.classList.remove('show');
+            }
+        });
     </script>
 </body>
 </html>

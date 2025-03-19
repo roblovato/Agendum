@@ -1,6 +1,11 @@
 .events-container {
     .card();
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 112px); // Account for header (64px) + margins (48px)
     overflow: hidden;
+    position: relative;
+    margin: 24px;
 }
 
 .events-header {
@@ -9,6 +14,19 @@
     background: @text-color;
     color: @primary-color;
     font-weight: bold;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 1px solid @border-color;
+    flex-shrink: 0; // Prevent header from shrinking
+}
+
+.events-list {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    min-height: 0; // This is crucial for flex scrolling
 }
 
 .event-row {
@@ -37,15 +55,47 @@
         &.expanded {
             display: block;
         }
+
+        .detail-section {
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+
+            h4 {
+                margin-bottom: 8px;
+                color: #666;
+            }
+        }
+        
     }
 
     .details-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        grid-template-columns: repeat(4, 1fr);
         gap: @spacing-medium;
-        max-height: 0;
-        overflow: hidden;
-        transition: max-height @transition-duration;
+        padding: @spacing-medium;
+        border-top: 1px solid @border-color;
+        background: lighten(@background-color, 5%);
+
+        .detail-item {
+            h4 {
+                color: @text-color;
+                font-size: 0.875rem;
+                font-weight: 500;
+                margin: 0 0 @spacing-small 0;
+            }
+
+            p {
+                margin: 0;
+                color: @text-color;
+            }
+        }
+
+        .responses {
+            text-align: right;
+            font-size: 1.25rem;
+            font-weight: 500;
+        }
     }
 }
 
@@ -99,5 +149,11 @@
         &.delete-button {
             color: @error-color;
         }
+    }
+}
+
+@media (max-width: 768px) {
+    .date-col {
+        display: none;
     }
 }
