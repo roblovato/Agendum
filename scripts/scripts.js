@@ -1450,11 +1450,6 @@ async function loadAndDisplayEvents() {
             
             const eventDiv = document.createElement('div');
             eventDiv.className = 'event-row';
-
-            const editIcon = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 32 32"><path fill="#4b4b4d" d="M22.1,3.8L5.8,20.1l-1.8,7.9,7.9-1.8L28.2,9.9l-6.1-6.1ZM26.1,9.9l-1.4,1.4-3.9-3.9,1.4-1.4,3.9,3.9ZM10.2,22.9l9.9-9.9,1.4,1.4-9.9,9.9-1.4-1.4ZM7.7,20.4l9.9-9.9,1.4,1.4-9.9,9.9-1.4-1.4ZM18.7,9.4l.9-.9,3.9,3.9-.9.9-3.9-3.9ZM7,21.8l3.2,3.2-4.2,1,1-4.2Z"/></svg>';
-            const deleteIcon = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 32 32"><rect fill="#4b4b4d" x="12.8" y="14" width="1.5" height="10"/><rect fill="#4b4b4d" x="17.8" y="14" width="1.5" height="10"/><path fill="#4b4b4d" d="M25.2,10.5c0-1.5-1.2-2.8-2.8-2.8h-3.2v-.8c0-1.2-1-2.2-2.2-2.2h-2c-1.2,0-2.2,1-2.2,2.2v.8h-3.2c-1.5,0-2.8,1.2-2.8,2.8v1.8h2v15h14.5v-15h2v-1.8ZM14.2,7c0-.4.3-.8.8-.8h2c.4,0,.8.3.8.8.8v.8h-3.5v-.8ZM21.8,25.8h-11.5v-13.5h11.5v13.5ZM23.8,10.8h-15.5v-.3c0-.7.6-1.2,1.2-1.2h13c.7,0,1.2.6,1.2,1.2v.3Z"/></svg>';
-            const viewIcon = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 32 32"><path fill="#4b4b4d" d="M16,20.2c-2.3,0-4.2-1.9-4.2-4.2s1.9-4.2,4.2-4.2,4.2,1.9,4.2,4.2-1.9,4.2-4.2,4.2ZM16,13.2c-1.5,0-2.8,1.2-2.8,2.8s1.2,2.8,2.8,2.8,2.8-1.2,2.8-2.8-1.2-2.8-2.8-2.8Z"/><path fill="#4b4b4d" d="M16,23.2h0c-2.7,0-5.3-1.1-7.2-3l-4.3-4.2,4.3-4.2c1.9-1.9,4.5-3,7.2-3s5.3,1.1,7.2,3l4.3,4.2-4.3,4.2c-1.9,1.9-4.5,3-7.2,3ZM6.5,16l3.4,3.2c1.7,1.6,3.9,2.6,6.2,2.6s4.5-.9,6.2-2.6l3.4-3.2-3.4-3.2c-1.7-1.6-3.9-2.6-6.2-2.6s-4.5.9-6.2,2.6l-3.4,3.2Z"/></svg>';
-            const chevronIcon = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 32 32"><polygon fill="#4b4b4d" points="12.8 25 11.7 24 19.7 16 11.7 8 12.8 7 21.8 16 12.8 25"/></svg>';
             
             eventDiv.innerHTML = `
                 <div class="event-summary">

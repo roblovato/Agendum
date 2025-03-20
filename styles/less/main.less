@@ -26,6 +26,12 @@ body {
     margin: 0;
     padding: 0;
     height: 100vh;
+    
+    &.app-home {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
 }
 
 #app {
@@ -132,22 +138,181 @@ body {
     max-width: 800px;
     margin: 0 auto;
     text-align: center;
+    padding: @spacing-large;
+    transition: opacity 0.3s ease-in-out;
 
     .description {
         color: #666;
         font-size: 1.2em;
         line-height: 1.6;
-        margin-bottom: 40px;
         max-width: 600px;
         margin-left: auto;
         margin-right: auto;
     }
+}
 
-    .button-container a {
-        margin: 0 20px
+.home-header {
+    text-align: center;
+    padding: 20px 10px;
+    box-shadow: 0 2px 4px fade(@shadow-color, 10%);
+
+    .landing-title {
+        font-size: 3em;
+        display: inline;
+        
+        &.logo {
+            cursor: pointer;
+            transition: color @transition-duration;
+            user-select: none;
+            text-shadow: 0 0 8px fade(@primary-color, 25%);
+            
+            &:hover {
+                color: @primary-color;
+            }
+            
+            &:focus {
+                outline: none;
+                color: @primary-color;
+                // text-shadow: 0 0 8px fade(@primary-color, 25%);
+            }
+        }
     }
 }
 
-.landing-title {
-    font-size: 3em;
+.content-area {
+    padding: 40px 10px;
+    overflow-y: auto;
+    position: relative;
+    background-color: lighten(@background-color, 2%);
+    box-shadow: inset 0 2px 8px fade(@shadow-color, 10%), inset 0 -2px 8px fade(@shadow-color, 10%);
+
+    // Content switching transitions
+    #landing-content,
+    #signup-content,
+    #signin-content {
+        transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+        // position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 1;
+        transform: translateY(0);
+        padding: @spacing-large;
+        box-sizing: border-box;
+        overflow-y: auto;
+
+        &[style*="display: none"] {
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+    }
+
+    // Auth container styles
+    .auth-container {
+        max-width: 400px;
+        margin: 0 auto;
+        padding: @spacing-large;
+        // background-color: lighten(@background-color, 2%);
+        border-radius: 8px;
+        // box-shadow: 0 2px 8px fade(@shadow-color, 10%);
+
+        h1 {
+            text-align: center;
+            margin-bottom: @spacing-large;
+            color: @text-color;
+        }
+
+        .form-group {
+            margin-bottom: @spacing-medium;
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: @spacing-large;
+            
+            a {
+                color: @primary-color;
+                text-decoration: none;
+                
+                &:hover {
+                    text-decoration: underline;
+                }
+            }
+        }
+    }
+}
+
+.footer {
+    padding: 20px 10px;
+    background-color: @background-color;
+    box-shadow: 0 -2px 4px fade(@shadow-color, 10%);
+}
+
+.button-container {
+    .flex(center, center, @spacing-medium);
+
+    button {
+        min-width: 120px;
+        .button-base();
+        
+        &.primary {
+            background-color: @primary-color;
+            color: white;
+            
+            &:hover {
+                background-color: darken(@primary-color, 10%);
+            }
+        }
+    }
+}
+
+.password-requirements {
+    font-size: 0.85em;
+    color: @text-color-light;
+    margin-top: @spacing-small;
+    padding-left: @spacing-small;
+
+    ul {
+        margin: @spacing-small 0 0 0;
+        padding-left: @spacing-large;
+        list-style-type: disc;
+
+        li {
+            margin-bottom: 2px;
+            line-height: 1.4;
+        }
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .home-header {
+        padding: 10px;
+    }
+    
+    .content-area {
+        flex: 1;
+        padding: 20px 10px;
+        
+        #landing-content,
+        #signup-content,
+        #signin-content {
+            padding: 10px 15px 15px 15px;
+        }
+
+    }
+
+    .landing-container {
+        padding: 0;
+    }
+
+    .auth-container {
+        padding: 0;
+    }
+    
 }

@@ -933,6 +933,11 @@ body {
   padding: 0;
   height: 100vh;
 }
+body.app-home {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
 #app {
   height: 100vh;
   display: flex;
@@ -977,19 +982,157 @@ body {
   max-width: 800px;
   margin: 0 auto;
   text-align: center;
+  padding: 24px;
+  transition: opacity 0.3s ease-in-out;
 }
 .landing-container .description {
   color: #666;
   font-size: 1.2em;
   line-height: 1.6;
-  margin-bottom: 40px;
   max-width: 600px;
   margin-left: auto;
   margin-right: auto;
 }
-.landing-container .button-container a {
-  margin: 0 20px;
+.home-header {
+  text-align: center;
+  padding: 20px 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
-.landing-title {
+.home-header .landing-title {
   font-size: 3em;
+  display: inline;
+}
+.home-header .landing-title.logo {
+  cursor: pointer;
+  transition: color 0.2s;
+  user-select: none;
+  text-shadow: 0 0 8px rgba(40, 0, 3, 0.25);
+}
+.home-header .landing-title.logo:hover {
+  color: #280003;
+}
+.home-header .landing-title.logo:focus {
+  outline: none;
+  color: #280003;
+}
+.content-area {
+  padding: 40px 10px;
+  overflow-y: auto;
+  position: relative;
+  background-color: #fcfcfa;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1), inset 0 -2px 8px rgba(0, 0, 0, 0.1);
+}
+.content-area #landing-content,
+.content-area #signup-content,
+.content-area #signin-content {
+  transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 1;
+  transform: translateY(0);
+  padding: 24px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+.content-area #landing-content[style*="display: none"],
+.content-area #signup-content[style*="display: none"],
+.content-area #signin-content[style*="display: none"] {
+  opacity: 0;
+  transform: translateY(20px);
+  pointer-events: none;
+}
+.content-area #landing-content h2,
+.content-area #signup-content h2,
+.content-area #signin-content h2 {
+  margin-top: 0;
+}
+.content-area .auth-container {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 24px;
+  border-radius: 8px;
+}
+.content-area .auth-container h1 {
+  text-align: center;
+  margin-bottom: 24px;
+  color: #848586;
+}
+.content-area .auth-container .form-group {
+  margin-bottom: 16px;
+}
+.content-area .auth-container .login-link {
+  text-align: center;
+  margin-top: 24px;
+}
+.content-area .auth-container .login-link a {
+  color: #280003;
+  text-decoration: none;
+}
+.content-area .auth-container .login-link a:hover {
+  text-decoration: underline;
+}
+.footer {
+  padding: 20px 10px;
+  background-color: #f8f7f4;
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+}
+.button-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+}
+.button-container button {
+  min-width: 120px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+.button-container button.primary {
+  background-color: #280003;
+  color: white;
+}
+.button-container button.primary:hover {
+  background-color: #000000;
+}
+.password-requirements {
+  font-size: 0.85em;
+  color: #9e9f9f;
+  margin-top: 8px;
+  padding-left: 8px;
+}
+.password-requirements ul {
+  margin: 8px 0 0 0;
+  padding-left: 24px;
+  list-style-type: disc;
+}
+.password-requirements ul li {
+  margin-bottom: 2px;
+  line-height: 1.4;
+}
+@media screen and (max-width: 768px) {
+  .home-header {
+    padding: 10px;
+  }
+  .content-area {
+    flex: 1;
+    padding: 20px 10px;
+  }
+  .content-area #landing-content,
+  .content-area #signup-content,
+  .content-area #signin-content {
+    padding: 10px 15px 15px 15px;
+  }
+  .landing-container {
+    padding: 0;
+  }
+  .auth-container {
+    padding: 0;
+  }
 }

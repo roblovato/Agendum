@@ -5,10 +5,109 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Agendum - Event Scheduling Made Simple</title>
     <link rel="stylesheet" href="styles/css/main.css">
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="scripts/firebase-config.js"></script>
+    <script src="scripts/scripts.js" defer></script>
 </head>
-<body>
+<body class="app-home">
     <div id="app">
-        <!-- Components will be loaded here -->
+        <header class="home-header">
+            <h1 class="landing-title logo" role="button" tabindex="0" id="logoBtn">Agendum</h1>
+        </header>
+
+        <main class="content-area">
+            <!-- Default landing content -->
+            <div id="landing-content" class="landing-container">
+                <p class="description">
+                    Effortlessly schedule events with anyone using this tool. Simply create an event with all the details and share the link with your invitees. They’ll receive access to a calendar where they can indicate their availability. Once everyone has responded, you can select the optimal event date based on the most available times.
+                </p>
+            </div>
+
+            <!-- Sign Up Form -->
+            <div id="signup-content" class="auth-container" style="display: none;">
+                <h2>Sign Up</h2>
+                <form class="modal-form" id="signupForm" novalidate>
+                    <div class="form-group">
+                        <label for="name">Full Name</label>
+                        <div class="input-container">
+                            <input type="text" id="name" name="name">
+                            <div class="error-message"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupEmail">Email Address</label>
+                        <div class="input-container">
+                            <input type="email" id="signupEmail" name="email">
+                            <div class="error-message"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupPassword">Password</label>
+                        <div class="input-container">
+                            <input type="password" id="signupPassword" name="password">
+                            <div class="error-message"></div>
+                        </div>
+                        <div class="password-requirements">
+                            Password must contain:
+                            <ul>
+                                <li>At least 6 characters</li>
+                                <li>One uppercase letter</li>
+                                <li>One number</li>
+                                <li>One special character</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm Password</label>
+                        <div class="input-container">
+                            <input type="password" id="confirmPassword" name="confirmPassword">
+                            <div class="error-message"></div>
+                        </div>
+                    </div>
+                    <div class="buttons">
+                        <button type="submit" class="button primary">Submit</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Sign In Form -->
+            <div id="signin-content" class="auth-container" style="display: none;">
+                <h2>Sign In</h2>
+                <form class="modal-form" id="signinForm" novalidate>
+                    <div class="form-group">
+                        <label for="signinEmail">Email</label>
+                        <div class="input-container">
+                            <input type="email" id="signinEmail" name="email">
+                            <div class="error-message"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="signinPassword">Password</label>
+                        <div class="input-container">
+                            <input type="password" id="signinPassword" name="password">
+                            <div class="error-message"></div>
+                        </div>
+                    </div>
+                    <div class="buttons">
+                        <button type="submit" class="button primary">Sign In</button>
+                    </div>
+                </form>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="button-container">
+                <button class="button button-base primary" id="signupBtn">Sign Up</button>
+                <button class="button button-base primary" id="signinBtn">Sign In</button>
+            </div>
+        </footer>
+    </div>
+
+    <div class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading...</div>
     </div>
 
     <script type="module">
@@ -17,31 +116,216 @@
             createAuthScripts 
         } from './scripts/components.js';
 
-        // Initialize the app
-        document.getElementById('app').innerHTML = `
-            <div class="container landing-container">
-                <h1 class="landing-title logo">Agendum</h1>
-                <p class="description">
-                    Use this tool to schedule events with anyone. You create the event with all the details, then share the link with others. Your invitees will get a link to a calendar where they choose their availability. After they are done you can choose your event date based on the most availability. 
-                </p>
-                <div class="button-container">
-                    <a href="signup.html" class="button button button-base primary">Sign Up</a>
-                    <a href="signin.html" class="button button button-base primary">Sign In</a>
-                </div>
-            </div>
-        `;
-
-        // Add loading overlay separately
-        document.body.insertAdjacentHTML('beforeend', createLoadingOverlay());
-
-        // Add Firebase scripts
-        document.body.insertAdjacentHTML('beforeend', createAuthScripts());
-
-        // Hide loading overlay after initialization
         document.addEventListener('DOMContentLoaded', () => {
             const loadingOverlay = document.querySelector('.loading-overlay');
+            const landingContent = document.getElementById('landing-content');
+            const signupContent = document.getElementById('signup-content');
+            const signinContent = document.getElementById('signin-content');
+            const signupBtn = document.getElementById('signupBtn');
+            const signinBtn = document.getElementById('signinBtn');
+            const logoBtn = document.getElementById('logoBtn');
+
+            // Hide loading overlay after initialization
             if (loadingOverlay) {
                 loadingOverlay.classList.remove('show');
+            }
+
+            // Function to show content
+            function showContent(contentId) {
+                [landingContent, signupContent, signinContent].forEach(content => {
+                    if (content.id === contentId) {
+                        content.style.display = 'block';
+                    } else {
+                        content.style.display = 'none';
+                    }
+                });
+            }
+
+            // Button click handlers
+            signupBtn.addEventListener('click', () => showContent('signup-content'));
+            signinBtn.addEventListener('click', () => showContent('signin-content'));
+
+            // Form navigation handlers
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('switch-to-signin')) {
+                    e.preventDefault();
+                    showContent('signin-content');
+                } else if (e.target.classList.contains('switch-to-signup')) {
+                    e.preventDefault();
+                    showContent('signup-content');
+                }
+            });
+
+            // Logo click handler
+            logoBtn.addEventListener('click', () => showContent('landing-content'));
+            // Also handle keyboard interaction for accessibility
+            logoBtn.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    showContent('landing-content');
+                }
+            });
+
+            // Initialize sign up form
+            const signupForm = document.getElementById('signupForm');
+            if (signupForm) {
+                signupForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    
+                    // Clear previous errors
+                    signupForm.querySelectorAll('input').forEach(input => {
+                        const container = input.closest('.input-container');
+                        if (container) {
+                            const errorMessage = container.querySelector('.error-message');
+                            if (errorMessage) {
+                                errorMessage.textContent = '';
+                            }
+                            input.classList.remove('invalid');
+                        }
+                    });
+                    
+                    const nameInput = signupForm.querySelector('#name');
+                    const emailInput = signupForm.querySelector('#signupEmail');
+                    const passwordInput = signupForm.querySelector('#signupPassword');
+                    const confirmPasswordInput = signupForm.querySelector('#confirmPassword');
+                    
+                    let hasError = false;
+                    
+                    // Validate name
+                    if (!nameInput.value.trim()) {
+                        showError(nameInput, 'Name is required');
+                        hasError = true;
+                    }
+                    
+                    // Validate email
+                    if (!emailInput.value.trim()) {
+                        showError(emailInput, 'Email is required');
+                        hasError = true;
+                    }
+                    
+                    // Validate password
+                    const password = passwordInput.value;
+                    if (!password) {
+                        showError(passwordInput, 'Password is required');
+                        hasError = true;
+                    } else {
+                        // Check password requirements
+                        if (password.length < 6) {
+                            showError(passwordInput, 'Password must be at least 6 characters');
+                            hasError = true;
+                        }
+                        if (!/[A-Z]/.test(password)) {
+                            showError(passwordInput, 'Password must contain an uppercase letter');
+                            hasError = true;
+                        }
+                        if (!/[0-9]/.test(password)) {
+                            showError(passwordInput, 'Password must contain a number');
+                            hasError = true;
+                        }
+                        if (!/[^A-Za-z0-9]/.test(password)) {
+                            showError(passwordInput, 'Password must contain a special character');
+                            hasError = true;
+                        }
+                    }
+                    
+                    // Validate password confirmation
+                    if (password !== confirmPasswordInput.value) {
+                        showError(confirmPasswordInput, "Passwords don't match");
+                        hasError = true;
+                    }
+                    
+                    if (hasError) return;
+
+                    try {
+                        if (loadingOverlay) loadingOverlay.classList.add('show');
+
+                        // Create the user
+                        const userCredential = await firebase.auth().createUserWithEmailAndPassword(
+                            emailInput.value.trim(), 
+                            password
+                        );
+                        
+                        try {
+                            // Create the user profile
+                            await db.collection('users').doc(userCredential.user.uid).set({
+                                name: nameInput.value.trim(),
+                                email: emailInput.value.trim(),
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        } catch (dbError) {
+                            console.error('Error creating user profile:', dbError);
+                        }
+
+                        window.location.replace('dashboard.html');
+                    } catch (error) {
+                        console.error('Sign-up error:', error);
+                        if (error.code === 'permission-denied') {
+                            showError(emailInput, 'Unable to create user profile. Please try again.');
+                        } else {
+                            showError(emailInput, error.message);
+                        }
+                    } finally {
+                        if (loadingOverlay) loadingOverlay.classList.remove('show');
+                    }
+                });
+            }
+
+            // Initialize sign in form
+            const signinForm = document.getElementById('signinForm');
+            if (signinForm) {
+                signinForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    
+                    // Clear previous errors
+                    signinForm.querySelectorAll('.error-message').forEach(msg => {
+                        msg.textContent = '';
+                        msg.parentElement.querySelector('input').classList.remove('invalid');
+                    });
+                    
+                    const emailInput = signinForm.querySelector('#signinEmail');
+                    const passwordInput = signinForm.querySelector('#signinPassword');
+                    
+                    const email = emailInput.value.trim();
+                    const password = passwordInput.value;
+                    
+                    let hasError = false;
+                    
+                    if (!email) {
+                        showError(emailInput, 'Email is required');
+                        hasError = true;
+                    }
+                    
+                    if (!password) {
+                        showError(passwordInput, 'Password is required');
+                        hasError = true;
+                    }
+                    
+                    if (hasError) return;
+
+                    try {
+                        if (loadingOverlay) loadingOverlay.classList.add('show');
+
+                        await firebase.auth().signInWithEmailAndPassword(email, password);
+                        window.location.replace('dashboard.html');
+                    } catch (error) {
+                        console.error('Sign in error:', error);
+                        showError(emailInput, error.message);
+                    } finally {
+                        if (loadingOverlay) loadingOverlay.classList.remove('show');
+                    }
+                });
+            }
+
+            // Helper function to show errors
+            function showError(input, message) {
+                const container = input.closest('.input-container');
+                if (!container) return;
+
+                const errorElement = container.querySelector('.error-message');
+                if (errorElement) {
+                    errorElement.textContent = message;
+                }
+                input.classList.add('invalid');
             }
         });
     </script>
