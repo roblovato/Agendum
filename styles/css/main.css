@@ -1121,7 +1121,6 @@ body.app-home {
     padding: 10px;
   }
   .content-area {
-    flex: 1;
     padding: 20px 10px;
   }
   .content-area #landing-content,
