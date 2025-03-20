@@ -1127,6 +1127,8 @@ body.app-home {
   .content-area #signup-content,
   .content-area #signin-content {
     padding: 10px 15px 15px 15px;
+    background: none;
+    box-shadow: none;
   }
   .landing-container {
     padding: 0;
